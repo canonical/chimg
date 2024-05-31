@@ -1,0 +1,33 @@
+name: testing
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  tox:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.8", "3.10", "3.12"]
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install tox and any other packages
+        run: |
+          # FIXME: not pining to an exact version results in getting poetry 1.0.10 which doesn't work
+          pip3 install tox poetry==1.7.1
+          poetry --version
+      - uses: actions/checkout@v3
+      - name: Run tox
+        # Run tox using the version of Python in `PATH`
+        run: tox
+  snap:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: snapcore/action-build@v1

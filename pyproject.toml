@@ -1,0 +1,50 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "chimg"
+version = "0.3.0"
+description = "A tool to modify images and chroots based on configuration"
+
+license = "GPL-3.0-or-later"
+
+authors = [
+    "Thomas Bechtold <thomasbechtold@jpberlin.de>"
+]
+
+repository = "https://github.com/toabctl/chimg"
+homepage = "https://github.com/toabctl/chimg"
+readme = ["LICENSE"]
+keywords = ["Ubuntu", "chroot", "image"]
+
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pyyaml = "*"
+
+[tool.poetry.group.test]
+optional = true
+
+[tool.poetry.group.test.dependencies]
+flake8 = "*"
+black = "*"
+pytest = "*"
+coverage = "*"
+
+[tool.poetry.group.type]
+optional = true
+
+[tool.poetry.group.type.dependencies]
+mypy = "*"
+types-pyyaml = "*"
+pytest = "*"
+
+[tool.poetry.group.doc]
+optional = true
+
+[tool.poetry.group.doc.dependencies]
+Sphinx = "*"
+
+[tool.poetry.scripts]
+chimg = "chimg.cli:main"
