@@ -3,6 +3,7 @@
 
 from unittest.mock import patch, ANY
 import pathlib
+import pytest
 
 from chimg import chroot
 from chimg import context
@@ -28,3 +29,39 @@ def test__cmd_run(mock_subprocess, chroot_dir):
     mock_subprocess.assert_called_once_with(
         ["/usr/sbin/chroot", chroot_dir.as_posix(), ANY], cwd=None, env=None, capture_output=True, shell=False
     )
+
+
+@pytest.mark.parametrize(
+    "deb",
+    [
+        {"name": "emacs"},
+        {"name": "emacs", "hold": True},
+    ],
+)
+@patch("chimg.common.subprocess.run")
+def test__deb_install(mock_subprocess, chroot_dir, deb):
+    """
+    test _deb_install() method
+    """
+    mock_subprocess.return_value.returncode = 0
+    ctx = context.Context(conf_path=curdir / "fixtures/config1.yaml", chroot_path=chroot_dir)
+    cr = chroot.Chroot(ctx)
+    cr._deb_install(deb)
+    mock_subprocess.assert_any_call(
+        ["/usr/sbin/chroot", chroot_dir.as_posix(), "apt-get", "install", "--assume-yes", deb["name"]],
+        cwd=None,
+        env={"DEBIAN_FRONTEND": "noninteractive"},
+        capture_output=True,
+        shell=False,
+    )
+    if deb.get("hold", False):
+        mock_subprocess.assert_any_call(
+            ["/usr/sbin/chroot", chroot_dir.as_posix(), "apt-mark", "hold", deb["name"]],
+            cwd=None,
+            env={"DEBIAN_FRONTEND": "noninteractive"},
+            capture_output=True,
+            shell=False,
+        )
+        assert mock_subprocess.call_count == 2
+    else:
+        assert mock_subprocess.call_count == 1
