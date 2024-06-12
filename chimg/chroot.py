@@ -306,6 +306,15 @@ class Chroot:
                 env={"DEBIAN_FRONTEND": "noninteractive"},
             )
 
+    def _apt_update(self):
+        """
+        Call apt-get update in the chroot
+        """
+        run_command(
+            ["/usr/sbin/chroot", self._ctx.chroot_path, "apt-get", "update", "--assume-yes"],
+            env={"DEBIAN_FRONTEND": "noninteractive"},
+        )
+
     def _kernel_install(self):
         """
         Install a kernel package
@@ -325,10 +334,7 @@ class Chroot:
             env={"DEBIAN_FRONTEND": "noninteractive"},
             shell=True,
         )
-        run_command(
-            ["/usr/sbin/chroot", self._ctx.chroot_path, "apt-get", "update", "--assume-yes"],
-            env={"DEBIAN_FRONTEND": "noninteractive"},
-        )
+        self._apt_update()
         run_command(
             ["/usr/sbin/chroot", self._ctx.chroot_path, "apt-get", "install", "--assume-yes", self._ctx.conf.kernel],
             env={"DEBIAN_FRONTEND": "noninteractive"},
@@ -516,7 +522,7 @@ Pin: release o={repo_pin_name}
 Pin-Priority: {repo_pin_priority}
 """
                 )
-        run_command(["chroot", self._ctx.chroot_path, "apt-get", "update"])
+        self._apt_update()
         logger.info("PPA added")
         yield
         # cleanup the PPA
@@ -529,7 +535,7 @@ Pin-Priority: {repo_pin_priority}
             os.remove(f"{self._ctx.chroot_path}/etc/apt/auth.conf.d/{name}.conf")
         if os.path.exists(f"{self._ctx.chroot_path}/etc/apt/preferences.d/{name}.pref"):
             os.remove(f"{self._ctx.chroot_path}/etc/apt/preferences.d/{name}.pref")
-        run_command(["chroot", self._ctx.chroot_path, "apt-get", "update"])
+        self._apt_update()
         logger.info("PPA removed")
 
     @contextmanager
