@@ -460,15 +460,15 @@ GRUB_FORCE_PARTUUID={partuuid}"""
         if len(self._ctx.conf.ppas) > 0:
             for ppa in self._ctx.conf.ppas:
                 with self._ppa_setup(
-                        ppa["name"],
-                        ppa["uri"],
-                        ppa["suites"],
-                        ppa["components"],
-                        ppa["fingerprint"],
-                        ppa["username"],
-                        ppa["password"],
-                        ppa["pin_name"],
-                        ppa["pin_priority"],
+                    ppa["name"],
+                    ppa["uri"],
+                    ppa["suites"],
+                    ppa["components"],
+                    ppa["fingerprint"],
+                    ppa["username"],
+                    ppa["password"],
+                    ppa["pin_name"],
+                    ppa["pin_priority"],
                 ):
                     yield
         else:
