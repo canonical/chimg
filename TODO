@@ -7,3 +7,4 @@
 * documentation
 * configuration inheritance/overlays (not done in ubuntu-image so don't do?!)
 * architecture specific snaps/debs
+* support to keep a PPA available after build
