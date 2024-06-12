@@ -48,3 +48,9 @@ Sphinx = "*"
 
 [tool.poetry.scripts]
 chimg = "chimg.cli:main"
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers"
+markers = [
+    "realchroot: run functional tests with real chroot directory (created with mmdebstrap)"
+]
