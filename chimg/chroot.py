@@ -472,6 +472,8 @@ GRUB_FORCE_PARTUUID={partuuid}"""
                 ):
                     yield
         else:
+            # no PPAs setup - but do at least one apt-get update
+            self._apt_update()
             yield
 
     @contextmanager
