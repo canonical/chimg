@@ -26,6 +26,19 @@ jobs:
       - name: Run tox
         # Run tox using the version of Python in `PATH`
         run: tox
+  tox-functional:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install tox and any other packages
+        run: |
+          # FIXME: not pining to an exact version results in getting poetry 1.0.10 which doesn't work
+          sudo pip3 install tox poetry==1.7.1
+          poetry --version
+          sudo apt install -y mmdebstrap
+      - uses: actions/checkout@v3
+      - name: Run tox
+        # Run functional tests through tox
+        run: sudo tox -efunctional
   snap:
     runs-on: ubuntu-latest
     steps:
