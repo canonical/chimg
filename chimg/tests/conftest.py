@@ -31,7 +31,7 @@ def chroot_mmdebstrap_dir():
         subprocess.check_call(
             [
                 "mmdebstrap",
-                "--aptopt",
+                # "--aptopt",
                 # "'Acquire::http { Proxy \"http://127.0.0.1:3142\"; }'",
                 "--variant",
                 "apt",
