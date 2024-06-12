@@ -451,19 +451,22 @@ GRUB_FORCE_PARTUUID={partuuid}"""
         """
         Setup all configured PPAs
         """
-        for ppa in self._ctx.conf.ppas:
-            with self._ppa_setup(
-                ppa["name"],
-                ppa["uri"],
-                ppa["suites"],
-                ppa["components"],
-                ppa["fingerprint"],
-                ppa["username"],
-                ppa["password"],
-                ppa["pin_name"],
-                ppa["pin_priority"],
-            ):
-                yield
+        if len(self._ctx.conf.ppas) > 0:
+            for ppa in self._ctx.conf.ppas:
+                with self._ppa_setup(
+                        ppa["name"],
+                        ppa["uri"],
+                        ppa["suites"],
+                        ppa["components"],
+                        ppa["fingerprint"],
+                        ppa["username"],
+                        ppa["password"],
+                        ppa["pin_name"],
+                        ppa["pin_priority"],
+                ):
+                    yield
+        else:
+            yield
 
     @contextmanager
     def _ppa_setup(
