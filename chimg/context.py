@@ -27,7 +27,7 @@ class Context:
             y = yaml.safe_load(f.read())
             self._conf = Config(**y)
             # handle relative paths in config files. those are relative to the config file dirname
-            if self.conf.snap_config["aa_features_path"] and not os.path.isabs(
+            if self.conf.snap_config.get("aa_features_path") and not os.path.isabs(
                 self.conf.snap_config["aa_features_path"]
             ):
                 self.conf.snap_config["aa_features_path"] = (

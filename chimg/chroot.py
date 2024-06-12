@@ -240,7 +240,7 @@ class Chroot:
                 ["/usr/lib/snapd/snap-preseed", os.path.realpath(self._ctx.chroot_path)], env={"PATH": "/usr/bin"}
             )
             # mount the apparmor features into the chroot to make snap preseeding work
-            if self._ctx.conf.snap_config["aa_features_path"]:
+            if self._ctx.conf.snap_config.get("aa_features_path"):
                 target = f"{self._ctx.chroot_path}/sys/kernel/security/apparmor/features/"
                 with self._mount_bind(self._ctx.conf.snap_config["aa_features_path"], target):
                     run_command(
