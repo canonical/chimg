@@ -324,9 +324,6 @@ class Chroot:
             ],
             env={"DEBIAN_FRONTEND": "noninteractive"},
             shell=True,
-            # TODO: better handling of apt error case here
-            # allow return code 100 here to deal with non-installed linux (E: Unable to locate package '^linux-.*')
-            # success_codes=[0, 100],
         )
         run_command(
             ["/usr/sbin/chroot", self._ctx.chroot_path, "apt-get", "update", "--assume-yes"],
