@@ -328,6 +328,7 @@ class Chroot:
                 "remove",
                 "--purge",
                 "--assume-yes",
+                "--allow-change-held-packages",
                 "'^linux-.*'",
                 "linux-base+",
             ],
