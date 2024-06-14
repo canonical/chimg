@@ -7,6 +7,17 @@ import pytest
 import subprocess
 
 
+def _get_host_apt_proxy():
+    """
+    Get the apt proxy from the host system
+    """
+    out = subprocess.check_output(["apt-config", "dump", "--format", "'%v'", "Acquire::http::Proxy"]).decode().strip()
+    if out:
+        return out
+    else:
+        return None
+
+
 @pytest.fixture
 def chroot_dir():
     """
@@ -28,18 +39,12 @@ def chroot_mmdebstrap_dir():
         # use mmbootstrap to setup the root directory
         # TODO: make suite configurable
         # TODO: drop hardcoded apt proxy
-        subprocess.check_call(
-            [
-                "mmdebstrap",
-                "--aptopt",
-                # "'Acquire::http { Proxy \"http://127.0.0.1:3142\"; }'",
-                "--variant",
-                "apt",
-                "--include",
-                # gpg for PPAs, squashfs-tools for snap preseeding
-                "gpg,squashfs-tools,snapd",
-                "noble",
-                tmpdirname,
-            ]
-        )
+
+        cmd = ["mmdebstrap"]
+        # if a apt proxy is configured on the host, use it for mmdebstrap to speedup the download
+        apt_proxy = _get_host_apt_proxy()
+        if apt_proxy:
+            cmd.extend(["--aptopt", f"'Acquire::http {{ Proxy \"{apt_proxy}\"; }}'"])  # noqa: E201,E702,E202
+        cmd.extend(["--variant", "apt", "--include", "gpg,squashfs-tools,snapd", "noble", tmpdirname])
+        subprocess.check_call(cmd)
         yield pathlib.Path(tmpdirname)
