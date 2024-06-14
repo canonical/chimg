@@ -54,3 +54,5 @@ addopts = "--strict-markers"
 markers = [
     "realchroot: run functional tests with real chroot directory (created with mmdebstrap)"
 ]
+log_cli = true
+log_cli_level = "INFO"
