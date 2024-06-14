@@ -8,6 +8,9 @@ base: core20
 confinement: classic
 license: GPL-3.0
 issues: https://github.com/toabctl/chimg/issues
+website: https://github.com/toabctl/chimg
+source-code: https://github.com/toabctl/chimg
+contact: thomas.bechtold@canonical.com
 
 apps:
   chimg:
