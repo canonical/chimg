@@ -35,6 +35,7 @@ class Chroot:
             # run all steps
             self._cmds_pre()
             self._kernel_install()
+            self._debs_install()
             self._files_install()
             # setup snap assertions for preseeding
             self._snap_assertion_install()
