@@ -371,7 +371,13 @@ GRUB_FORCE_PARTUUID={partuuid}"""
         else:
             fs_label = self._ctx.conf.fs["root_fs_label"]
             run_command(
-                ["sed", "-i", "-e", f"s,root=[^ ]*,root=LABEL={fs_label},", "/boot/grub/grub.cfg"]  # noqa: E231,E202
+                [
+                    "sed",
+                    "-i",
+                    "-e",
+                    f"s,root=[^ ]*,root=LABEL={fs_label},",  # noqa: E231,E202
+                    f"{self._ctx.chroot_path}/boot/grub/grub.cfg",
+                ]
             )
 
     def _write_key(self, key_fingerprint: str, dest_path: str):
