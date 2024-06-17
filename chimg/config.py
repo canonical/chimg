@@ -78,8 +78,8 @@ class Config(BaseModel):
     The base configuration
     """
 
-    kernel: str
-    fs: ConfigFilesystem
+    kernel: Optional[str] = Field(description="Optional kernel deb package name", default=None)
+    fs: Optional[ConfigFilesystem] = Field(description="Optional filesystem options", default=None)
     ppas: Optional[List[ConfigPPA]] = Field(description="Optional list of PPAs", default=[])
     debs: Optional[List[ConfigDebPackage]] = Field(description="Optional list of debs", default=[])
     snap: Optional[ConfigSnap] = Field(description="Optional snap configuration and preseeded snaps", default=None)
