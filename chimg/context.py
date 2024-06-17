@@ -5,6 +5,7 @@ import logging
 import pathlib
 import yaml
 import os
+from pydantic import ValidationError
 
 from chimg.config import Config
 
@@ -25,13 +26,17 @@ class Context:
         # read the config itself
         with open(self._conf_path, "r") as f:
             y = yaml.safe_load(f.read())
-            self._conf = Config(**y)
+            try:
+                self._conf = Config(**y).model_dump()
+            except ValidationError as e:
+                print(e.errors())
+                raise
             # handle relative paths in config files. those are relative to the config file dirname
-            if self.conf.snap_config.get("aa_features_path") and not os.path.isabs(
-                self.conf.snap_config["aa_features_path"]
+            if self.conf["snap_config"].get("aa_features_path") and not os.path.isabs(
+                self.conf["snap_config"]["aa_features_path"]
             ):
-                self.conf.snap_config["aa_features_path"] = (
-                    pathlib.Path(self._conf_path).parent / self.conf.snap_config["aa_features_path"]
+                self.conf["snap_config"]["aa_features_path"] = (
+                    pathlib.Path(self._conf_path).parent / self.conf["snap_config"]["aa_features_path"]
                 ).as_posix()
             logger.debug(f"config loaded as: {self._conf}")
 
