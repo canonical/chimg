@@ -1,0 +1,8 @@
+---
+# a config testing only deb package installation
+debs:
+  - name: chrony
+  - name: fuse3
+    hold: true
+  - name: ec2-hibinit-agent
+    hold: false
