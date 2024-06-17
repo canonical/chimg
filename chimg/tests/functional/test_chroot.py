@@ -20,12 +20,15 @@ def _check_file_exists(file_path: pathlib.Path, chroot_path: pathlib.Path):
     assert os.path.exists(chroot_path / file_path)
 
 
-def _check_deb_installed(deb_name: str, chroot_path: pathlib.Path):
+def _check_deb_installed(deb_name: str, deb_hold: bool, chroot_path: pathlib.Path):
     """
     check that a given deb package is installed
     """
     res = subprocess.run(["/usr/sbin/chroot", chroot_path.as_posix(), "dpkg-query", "-W", deb_name])
     assert res.returncode == 0, f"deb package {deb_name} is not installed"
+    # check the hold status
+    res_mark = subprocess.check_output(["/usr/sbin/chroot", chroot_path.as_posix(), "apt-mark", "showhold", deb_name])
+    assert (deb_name in res_mark.decode().strip()) is deb_hold
 
 
 @pytest.mark.parametrize(
@@ -35,7 +38,15 @@ def _check_deb_installed(deb_name: str, chroot_path: pathlib.Path):
             "configs/kernel-only.yaml",
             [
                 (partial(_check_file_exists, pathlib.Path("/boot/vmlinuz"))),
-                (partial(_check_deb_installed, "linux-aws")),
+                (partial(_check_deb_installed, "linux-aws", False)),
+            ],
+        ],
+        [
+            "configs/deb-only.yaml",
+            [
+                (partial(_check_deb_installed, "chrony", False)),
+                (partial(_check_deb_installed, "fuse3", True)),
+                (partial(_check_deb_installed, "ec2-hibinit-agent", False)),
             ],
         ],
     ],
