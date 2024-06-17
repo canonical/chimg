@@ -35,6 +35,7 @@ class Chroot:
             # run all steps
             self._cmds_pre()
             self._kernel_install()
+            self._debs_install()
             self._files_install()
             # setup snap assertions for preseeding
             self._snap_assertion_install()
@@ -48,15 +49,15 @@ class Chroot:
         """
         Run all pre commands
         """
-        for cmd in self._ctx.conf.cmds_pre:
-            self._cmd_run(cmd)
+        for cmd in self._ctx.conf["cmds_pre"]:
+            self._cmd_run(cmd["cmd"])
 
     def _cmds_post(self):
         """
         Run all post commands
         """
-        for cmd in self._ctx.conf.cmds_post:
-            self._cmd_run(cmd)
+        for cmd in self._ctx.conf["cmds_post"]:
+            self._cmd_run(cmd["cmd"])
 
     def _cmd_run(self, cmd: str) -> Tuple[str, str]:
         """
@@ -82,8 +83,11 @@ class Chroot:
         """
         Install all configured snaps
         """
+        if not self._ctx.conf["snap"]:
+            return
+
         logger.info("Installing snaps ...")
-        for snap in self._ctx.conf.snaps:
+        for snap in self._ctx.conf["snap"]["snaps"]:
             self._snap_install(snap["name"], snap["channel"], snap["classic"], snap.get("revision"))
             self._snap_base_install(snap["name"])
         # install snapd
@@ -173,6 +177,9 @@ class Chroot:
         """
         Install snap assertions
         """
+        if not self._ctx.conf["snap"]:
+            return
+
         logger.info("Installing snap assertions ...")
         Path(f"{self._ctx.chroot_path}/var/lib/snapd/seed/assertions").mkdir(parents=True, exist_ok=True)
         Path(f"{self._ctx.chroot_path}/var/lib/snapd/seed/snaps").mkdir(parents=True, exist_ok=True)
@@ -185,8 +192,8 @@ class Chroot:
                 "--remote",
                 "model",
                 "series=16",
-                f"model={self._ctx.conf.snap_config['assertion_model']}",
-                f"brand-id={self._ctx.conf.snap_config['assertion_brand']}",
+                f"model={self._ctx.conf['snap']['assertion_model']}",
+                f"brand-id={self._ctx.conf['snap']['assertion_brand']}",
             ]
         )
         # get the account key from the model assertion
@@ -240,9 +247,9 @@ class Chroot:
                 ["/usr/lib/snapd/snap-preseed", os.path.realpath(self._ctx.chroot_path)], env={"PATH": "/usr/bin"}
             )
             # mount the apparmor features into the chroot to make snap preseeding work
-            if self._ctx.conf.snap_config.get("aa_features_path"):
+            if self._ctx.conf["snap"]:
                 target = f"{self._ctx.chroot_path}/sys/kernel/security/apparmor/features/"
-                with self._mount_bind(self._ctx.conf.snap_config["aa_features_path"], target):
+                with self._mount_bind(self._ctx.conf["snap"]["aa_features_path"], target):
                     run_command(
                         [
                             "chroot",
@@ -263,7 +270,7 @@ class Chroot:
         Install all configured files
         """
         logger.info("Installing files ...")
-        for f in self._ctx.conf.files:
+        for f in self._ctx.conf["files"]:
             self._file_install(f)
         logger.info("Files installed")
 
@@ -287,7 +294,7 @@ class Chroot:
         Install all configured deb packages
         """
         logger.info("Installing deb packages ...")
-        for deb in self._ctx.conf.debs:
+        for deb in self._ctx.conf["debs"]:
             self._deb_install(deb)
         logger.info("Deb packages installed")
 
@@ -319,6 +326,10 @@ class Chroot:
         """
         Install a kernel package
         """
+        if not self._ctx.conf["kernel"]:
+            logger.info("No kernel configured")
+            return
+
         logger.info("Installing kernel ...")
         run_command(
             [
@@ -337,7 +348,7 @@ class Chroot:
         )
         self._apt_update()
         run_command(
-            ["/usr/sbin/chroot", self._ctx.chroot_path, "apt-get", "install", "--assume-yes", self._ctx.conf.kernel],
+            ["/usr/sbin/chroot", self._ctx.chroot_path, "apt-get", "install", "--assume-yes", self._ctx.conf["kernel"]],
             env={"DEBIAN_FRONTEND": "noninteractive"},
         )
         logger.info("Kernel installed")
@@ -367,10 +378,22 @@ GRUB_FORCE_PARTUUID={partuuid}"""
         """
         if os.path.exists(f"{self._ctx.chroot_path}/etc/default/grub.d/40-force-partuuid.cfg"):
             return
-        else:
-            fs_label = self._ctx.conf.fs["root_fs_label"]
+
+        if not self._ctx.conf["fs"]:
+            logger.info("No filesystem configured")
+            return
+
+        if os.path.exists(f"{self._ctx.chroot_path}/boot/grub/grub.cfg"):
+            fs_label = self._ctx.conf["fs"]["root_fs_label"]
             run_command(
-                ["sed", "-i", "-e", f"s,root=[^ ]*,root=LABEL={fs_label},", "/boot/grub/grub.cfg"]  # noqa: E231,E202
+                [
+                    "sed",
+                    "-i",
+                    "-e",
+                    f'"s,root=[^ ]*,root=LABEL={fs_label},"',  # noqa: E231,E202
+                    f"{self._ctx.chroot_path}/boot/grub/grub.cfg",
+                ],
+                shell=True,
             )
 
     def _write_key(self, key_fingerprint: str, dest_path: str):
@@ -458,8 +481,8 @@ GRUB_FORCE_PARTUUID={partuuid}"""
         """
         Setup all configured PPAs
         """
-        if len(self._ctx.conf.ppas) > 0:
-            for ppa in self._ctx.conf.ppas:
+        if len(self._ctx.conf["ppas"]) > 0:
+            for ppa in self._ctx.conf["ppas"]:
                 with self._ppa_setup(
                     ppa["name"],
                     ppa["uri"],

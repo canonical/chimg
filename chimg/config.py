@@ -2,35 +2,22 @@
 #  SPDX-License-Identifier: GPL-3.0-or-later
 
 from typing import List, Optional
-from dataclasses import dataclass, field
+from pydantic import BaseModel, Field
 
 
-@dataclass
-class ConfigFile:
+class ConfigFile(BaseModel):
     """
     A file configuration
     """
 
     destination: str
-    owner: Optional[str]
-    group: Optional[str]
-    mode: Optional[int]
+    content: str
+    owner: Optional[str] = Field(description="Optional file owner", default=None)
+    group: Optional[str] = Field(description="Optional file group", default=None)
+    mode: Optional[int] = Field(description="Optional file mode", default=None)
 
 
-@dataclass
-class ConfigSnap:
-    """
-    General snap configuration required for preseeding
-    """
-
-    assertion_brand: str
-    assertion_model: str
-    # the apparmor features directory (must match the installed kernel to make preseeding work)
-    aa_features_path: Optional[str]
-
-
-@dataclass
-class ConfigSnapPackage:
+class ConfigSnapPackage(BaseModel):
     """
     A snap package configuration
     """
@@ -41,18 +28,28 @@ class ConfigSnapPackage:
     revision: Optional[str] = None
 
 
-@dataclass
-class ConfigDebPackage:
+class ConfigSnap(BaseModel):
+    """
+    General snap configuration required for preseeding
+    """
+
+    assertion_brand: str
+    assertion_model: str
+    # the apparmor features directory (must match the installed kernel to make preseeding work)
+    aa_features_path: Optional[str]
+    snaps: List[ConfigSnapPackage]
+
+
+class ConfigDebPackage(BaseModel):
     """
     A deb package configuration
     """
 
     name: str
-    hold: bool = False
+    hold: Optional[bool] = Field(description="Optional hold the package", default=False)
 
 
-@dataclass
-class ConfigPPA:
+class ConfigPPA(BaseModel):
     """
     A PPA configuration
     """
@@ -68,28 +65,24 @@ class ConfigPPA:
     pin_priority: Optional[int]
 
 
-@dataclass
-class ConfigFilesystem:
+class ConfigFilesystem(BaseModel):
     root_fs_label: str
 
 
-@dataclass
-class ConfigCommand:
+class ConfigCommand(BaseModel):
     cmd: str
 
 
-@dataclass
-class Config:
+class Config(BaseModel):
     """
     The base configuration
     """
 
-    kernel: str
-    snap_config: ConfigSnap
-    fs: ConfigFilesystem
-    ppas: Optional[List[ConfigPPA]] = field(default_factory=list)
-    debs: Optional[List[ConfigDebPackage]] = field(default_factory=list)
-    snaps: Optional[List[ConfigSnapPackage]] = field(default_factory=list)
-    files: Optional[List[ConfigFile]] = field(default_factory=list)
-    cmds_pre: Optional[List[ConfigCommand]] = field(default_factory=list)
-    cmds_post: Optional[List[ConfigCommand]] = field(default_factory=list)
+    kernel: Optional[str] = Field(description="Optional kernel deb package name", default=None)
+    fs: Optional[ConfigFilesystem] = Field(description="Optional filesystem options", default=None)
+    ppas: Optional[List[ConfigPPA]] = Field(description="Optional list of PPAs", default=[])
+    debs: Optional[List[ConfigDebPackage]] = Field(description="Optional list of debs", default=[])
+    snap: Optional[ConfigSnap] = Field(description="Optional snap configuration and preseeded snaps", default=None)
+    files: Optional[List[ConfigFile]] = Field(description="Optional list of files", default=[])
+    cmds_pre: Optional[List[ConfigCommand]] = Field(description="Optional list of pre commands", default=[])
+    cmds_post: Optional[List[ConfigCommand]] = Field(description="Optional list of post commands", default=[])
