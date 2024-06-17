@@ -17,17 +17,6 @@ class ConfigFile(BaseModel):
     mode: Optional[int] = Field(description="Optional file mode", default=None)
 
 
-class ConfigSnap(BaseModel):
-    """
-    General snap configuration required for preseeding
-    """
-
-    assertion_brand: str
-    assertion_model: str
-    # the apparmor features directory (must match the installed kernel to make preseeding work)
-    aa_features_path: Optional[str]
-
-
 class ConfigSnapPackage(BaseModel):
     """
     A snap package configuration
@@ -37,6 +26,18 @@ class ConfigSnapPackage(BaseModel):
     channel: str
     classic: bool = False
     revision: Optional[str] = None
+
+
+class ConfigSnap(BaseModel):
+    """
+    General snap configuration required for preseeding
+    """
+
+    assertion_brand: str
+    assertion_model: str
+    # the apparmor features directory (must match the installed kernel to make preseeding work)
+    aa_features_path: Optional[str]
+    snaps: List[ConfigSnapPackage]
 
 
 class ConfigDebPackage(BaseModel):
@@ -78,11 +79,10 @@ class Config(BaseModel):
     """
 
     kernel: str
-    snap_config: ConfigSnap
     fs: ConfigFilesystem
     ppas: Optional[List[ConfigPPA]] = Field(description="Optional list of PPAs", default=[])
     debs: Optional[List[ConfigDebPackage]] = Field(description="Optional list of debs", default=[])
-    snaps: Optional[List[ConfigSnapPackage]] = Field(description="Optional list of snaps", default=[])
+    snap: Optional[ConfigSnap] = Field(description="Optional snap configuration and preseeded snaps", default=None)
     files: Optional[List[ConfigFile]] = Field(description="Optional list of files", default=[])
     cmds_pre: Optional[List[ConfigCommand]] = Field(description="Optional list of pre commands", default=[])
     cmds_post: Optional[List[ConfigCommand]] = Field(description="Optional list of post commands", default=[])

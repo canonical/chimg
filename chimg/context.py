@@ -32,11 +32,13 @@ class Context:
                 print(e.errors())
                 raise
             # handle relative paths in config files. those are relative to the config file dirname
-            if self.conf["snap_config"].get("aa_features_path") and not os.path.isabs(
-                self.conf["snap_config"]["aa_features_path"]
+            if (
+                self.conf["snap"]
+                and self.conf["snap"]["aa_features_path"]
+                and not os.path.isabs(self.conf["snap"]["aa_features_path"])
             ):
-                self.conf["snap_config"]["aa_features_path"] = (
-                    pathlib.Path(self._conf_path).parent / self.conf["snap_config"]["aa_features_path"]
+                self.conf["snap"]["aa_features_path"] = (
+                    pathlib.Path(self._conf_path).parent / self.conf["snap"]["aa_features_path"]
                 ).as_posix()
             logger.debug(f"config loaded as: {self._conf}")
 

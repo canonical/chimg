@@ -83,8 +83,11 @@ class Chroot:
         """
         Install all configured snaps
         """
+        if not self._ctx.conf["snap"]:
+            return
+
         logger.info("Installing snaps ...")
-        for snap in self._ctx.conf["snaps"]:
+        for snap in self._ctx.conf["snap"]["snaps"]:
             self._snap_install(snap["name"], snap["channel"], snap["classic"], snap.get("revision"))
             self._snap_base_install(snap["name"])
         # install snapd
@@ -174,6 +177,9 @@ class Chroot:
         """
         Install snap assertions
         """
+        if not self._ctx.conf["snap"]:
+            return
+
         logger.info("Installing snap assertions ...")
         Path(f"{self._ctx.chroot_path}/var/lib/snapd/seed/assertions").mkdir(parents=True, exist_ok=True)
         Path(f"{self._ctx.chroot_path}/var/lib/snapd/seed/snaps").mkdir(parents=True, exist_ok=True)
@@ -186,8 +192,8 @@ class Chroot:
                 "--remote",
                 "model",
                 "series=16",
-                f"model={self._ctx.conf["snap_config"]['assertion_model']}",
-                f"brand-id={self._ctx.conf["snap_config"]['assertion_brand']}",
+                f"model={self._ctx.conf['snap']['assertion_model']}",
+                f"brand-id={self._ctx.conf['snap']['assertion_brand']}",
             ]
         )
         # get the account key from the model assertion
@@ -241,9 +247,9 @@ class Chroot:
                 ["/usr/lib/snapd/snap-preseed", os.path.realpath(self._ctx.chroot_path)], env={"PATH": "/usr/bin"}
             )
             # mount the apparmor features into the chroot to make snap preseeding work
-            if self._ctx.conf["snap_config"].get("aa_features_path"):
+            if self._ctx.conf["snap"]:
                 target = f"{self._ctx.chroot_path}/sys/kernel/security/apparmor/features/"
-                with self._mount_bind(self._ctx.conf["snap_config"]["aa_features_path"], target):
+                with self._mount_bind(self._ctx.conf["snap"]["aa_features_path"], target):
                     run_command(
                         [
                             "chroot",
