@@ -4,7 +4,7 @@ summary: A tool to modify images and chroots based on configuration
 description: |
   A tool to modify images and chroots based on configuration.
 version: git
-base: core20
+base: core22
 confinement: classic
 license: GPL-3.0
 issues: https://github.com/toabctl/chimg/issues
@@ -14,28 +14,19 @@ contact: thomas.bechtold@canonical.com
 
 apps:
   chimg:
-    command: bin/chimg
-    environment:
-      PYTHONPATH: $SNAP/lib/python3.8/site-packages
-      # need to set $HOME to the real HOME here because this is a strict snap
-      # and the creds for aws are in $HOME/.aws
-      HOME: $SNAP_REAL_HOME
+    command: bin/python $SNAP/bin/chimg
 
 parts:
   chimg:
     plugin: python
     source: .
+    # see https://forum.snapcraft.io/t/modulenotfounderror-exception-for-a-snap-built-in-classic-confinement-mode/31090
+    override-build: |
+      snapcraftctl build
+      ln -sf ../usr/bin/python3.10 $SNAPCRAFT_PART_INSTALL/bin/python3
     stage-packages:
-      - libpython3-stdlib
-      - libpython3.8-stdlib
-      - libpython3.8-minimal
-      - python3-pip
-      - python3-setuptools
-      - python3-wheel
-      - python3-venv
-      - python3-minimal
-      - python3-distutils
-      - python3-pkg-resources
-      - python3.8-minimal
-      - python3-yaml
       - squashfs-tools
+      - python3-venv
+      - python3.10-minimal
+      - libpython3.10-minimal
+      - libpython3.10-stdlib
