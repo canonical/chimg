@@ -44,7 +44,7 @@ def _check_deb_installed(deb_name: str, deb_hold: bool, chroot_path: pathlib.Pat
         [
             "configs/kernel-only.yaml",
             [
-                (partial(_check_file_exists, pathlib.Path("/boot/vmlinuz"))),
+                (partial(_check_file_exists, pathlib.Path("boot/vmlinuz"))),
                 (partial(_check_deb_installed, "linux-aws", False)),
             ],
         ],
