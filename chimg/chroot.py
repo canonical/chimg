@@ -482,24 +482,28 @@ GRUB_FORCE_PARTUUID={partuuid}"""
         Setup all configured PPAs
         """
         if len(self._ctx.conf["ppas"]) > 0:
-            for ppa in self._ctx.conf["ppas"]:
-                with self._ppa_setup(
-                    ppa["name"],
-                    ppa["uri"],
-                    ppa["suites"],
-                    ppa["components"],
-                    ppa["fingerprint"],
-                    ppa["signed_by"],
-                    ppa["username"],
-                    ppa["password"],
-                    ppa["auth_lines"],
-                    ppa["pin_name"],
-                    ppa["pin_priority"],
-                ):
-                    cmd = ["/usr/sbin/chroot", self._ctx.chroot_path, "apt-cache", "policy"]
-                    out, err = run_command(cmd)
-                    logger.info(out)
-                    yield
+            with ExitStack() as stack:
+                for ppa in self._ctx.conf["ppas"]:
+                    stack.enter_context(
+                        self._ppa_setup(
+                            ppa["name"],
+                            ppa["uri"],
+                            ppa["suites"],
+                            ppa["components"],
+                            ppa["fingerprint"],
+                            ppa["signed_by"],
+                            ppa["username"],
+                            ppa["password"],
+                            ppa["auth_lines"],
+                            ppa["pin_name"],
+                            ppa["pin_priority"],
+                        )
+                    )
+                logger.info("All PPAs setup")
+                cmd = ["/usr/sbin/chroot", self._ctx.chroot_path, "apt-cache", "policy"]
+                out, err = run_command(cmd)
+                logger.info(out)
+                yield
         else:
             # no PPAs setup - but do at least one apt-get update
             self._apt_update()
