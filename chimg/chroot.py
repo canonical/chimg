@@ -490,6 +490,7 @@ GRUB_FORCE_PARTUUID={partuuid}"""
                             ppa["uri"],
                             ppa["suites"],
                             ppa["components"],
+                            ppa["keep"],
                             ppa["fingerprint"],
                             ppa["signed_by"],
                             ppa["username"],
@@ -516,6 +517,7 @@ GRUB_FORCE_PARTUUID={partuuid}"""
         repo_uri: str,
         repo_suites: List[str],
         repo_components: List[str],
+        keep: bool,
         repo_key_fingerprint: Optional[str] = None,
         signed_by: Optional[str] = None,
         repo_username: Optional[str] = None,
@@ -576,17 +578,18 @@ Pin-Priority: {repo_pin_priority}
         logger.info("PPA added")
         yield
         # cleanup the PPA
-        logger.info("Removing PPA ...")
-        if os.path.exists(f"{self._ctx.chroot_path}/etc/apt/sources.list.d/{name}.sources"):
-            os.remove(f"{self._ctx.chroot_path}/etc/apt/sources.list.d/{name}.sources")
-        if os.path.exists(f"{self._ctx.chroot_path}/etc/apt/trusted.gpg.d/{name}.gpg"):
-            os.remove(f"{self._ctx.chroot_path}/etc/apt/trusted.gpg.d/{name}.gpg")
-        if os.path.exists(f"{self._ctx.chroot_path}/etc/apt/auth.conf.d/{name}.conf"):
-            os.remove(f"{self._ctx.chroot_path}/etc/apt/auth.conf.d/{name}.conf")
-        if os.path.exists(f"{self._ctx.chroot_path}/etc/apt/preferences.d/{name}.pref"):
-            os.remove(f"{self._ctx.chroot_path}/etc/apt/preferences.d/{name}.pref")
-        self._apt_update()
-        logger.info("PPA removed")
+        if not keep:
+            logger.info("Removing PPA ...")
+            if os.path.exists(f"{self._ctx.chroot_path}/etc/apt/sources.list.d/{name}.sources"):
+                os.remove(f"{self._ctx.chroot_path}/etc/apt/sources.list.d/{name}.sources")
+            if os.path.exists(f"{self._ctx.chroot_path}/etc/apt/trusted.gpg.d/{name}.gpg"):
+                os.remove(f"{self._ctx.chroot_path}/etc/apt/trusted.gpg.d/{name}.gpg")
+            if os.path.exists(f"{self._ctx.chroot_path}/etc/apt/auth.conf.d/{name}.conf"):
+                os.remove(f"{self._ctx.chroot_path}/etc/apt/auth.conf.d/{name}.conf")
+            if os.path.exists(f"{self._ctx.chroot_path}/etc/apt/preferences.d/{name}.pref"):
+                os.remove(f"{self._ctx.chroot_path}/etc/apt/preferences.d/{name}.pref")
+            self._apt_update()
+            logger.info("PPA removed")
 
     @contextmanager
     def _policy_rc_runlevel_ops(self):

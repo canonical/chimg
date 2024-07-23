@@ -59,6 +59,7 @@ class ConfigPPA(BaseModel):
     uri: str
     suites: List[str]
     components: List[str]
+    keep: bool = Field(description="Keep the PPA configured")
     fingerprint: Optional[str] = Field(description="Optional PPA fingerprint (key will be downloaded)", default=None)
     signed_by: Optional[pathlib.Path] = Field(description="Optional path to a key file", default=None)
     username: Optional[str] = Field(description="Optional PPA username", default=None)
