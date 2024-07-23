@@ -489,8 +489,10 @@ GRUB_FORCE_PARTUUID={partuuid}"""
                     ppa["suites"],
                     ppa["components"],
                     ppa["fingerprint"],
+                    ppa["signed_by"],
                     ppa["username"],
                     ppa["password"],
+                    ppa["auth_lines"],
                     ppa["pin_name"],
                     ppa["pin_priority"],
                 ):
@@ -507,9 +509,11 @@ GRUB_FORCE_PARTUUID={partuuid}"""
         repo_uri: str,
         repo_suites: List[str],
         repo_components: List[str],
-        repo_key_fingerprint: str,
+        repo_key_fingerprint: Optional[str] = None,
+        signed_by: Optional[str] = None,
         repo_username: Optional[str] = None,
         repo_password: Optional[str] = None,
+        repo_auth_lines: Optional[List[str]] = None,
         repo_pin_name: Optional[str] = None,
         repo_pin_priority: Optional[int] = None,
     ):
@@ -518,26 +522,39 @@ GRUB_FORCE_PARTUUID={partuuid}"""
         Use ppas_setup() to setup all configured PPAs.
         """
         logger.info("Adding PPA ...")
+
+        lines = [
+            f"X-Repolib-Name: {name}",
+            "Enabled: yes",
+            "Types: deb",
+            f"URIs: {repo_uri}",
+            f"Suites: {' '.join(repo_suites)}",
+            f"Components: {' '.join(repo_components)}",
+        ]
+
+        if repo_key_fingerprint and signed_by:
+            logger.warn("repo key fingerprint and signed_by are mutually exclusive. Using repo_key_fingerprint")
+
         # get & write the key for the given fingerprint and write it
-        self._write_key(repo_key_fingerprint, f"{self._ctx.chroot_path}/etc/apt/trusted.gpg.d/{name}.gpg")
+        if repo_key_fingerprint:
+            self._write_key(repo_key_fingerprint, f"{self._ctx.chroot_path}/etc/apt/trusted.gpg.d/{name}.gpg")
+            lines.append(f"Signed-By: /etc/apt/trusted.gpg.d/{name}.gpg")
+        elif signed_by:
+            lines.append(f"Signed-By: {signed_by}")
 
         # a deb822 style sources file
         with open(f"{self._ctx.chroot_path}/etc/apt/sources.list.d/{name}.sources", "w") as f:
-            f.write(
-                f"""X-Repolib-Name: {name}
-Enabled: yes
-Types: deb
-URIs: {repo_uri}
-Suites: {" ".join(repo_suites)}
-Components: {" ".join(repo_components)}
-Signed-By: /etc/apt/trusted.gpg.d/{name}.gpg
-"""
-            )
+            f.write("\n".join(lines))
 
         # apt authentication if username/password provided
         if repo_username and repo_password:
             with open(f"{self._ctx.chroot_path}/etc/apt/auth.conf.d/{name}.conf", "w") as f:
                 f.write(f"machine {repo_uri} login {repo_username} password {repo_password}")
+
+        # apt authentication if auth_lines provided
+        if repo_auth_lines:
+            with open(f"{self._ctx.chroot_path}/etc/apt/auth.conf.d/{name}.conf", "a+") as f:
+                f.write("\n".join(repo_auth_lines))
 
         # apt pinning if pin_name and pin_priority provided
         if repo_pin_name and repo_pin_priority:
