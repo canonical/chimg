@@ -318,7 +318,7 @@ class Chroot:
         Call apt-get update in the chroot
         """
         run_command(
-            ["/usr/sbin/chroot", self._ctx.chroot_path, "apt-get", "update", "--assume-yes"],
+            ["/usr/sbin/chroot", self._ctx.chroot_path, "apt-get", "update", "--assume-yes", "--error-on=any"],
             env={"DEBIAN_FRONTEND": "noninteractive"},
         )
 
