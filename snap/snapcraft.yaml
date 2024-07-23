@@ -24,6 +24,8 @@ parts:
     override-build: |
       snapcraftctl build
       ln -sf ../usr/bin/python3.10 $SNAPCRAFT_PART_INSTALL/bin/python3
+    build-packages:
+      - rustc
     stage-packages:
       - squashfs-tools
       - python3-venv
