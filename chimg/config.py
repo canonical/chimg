@@ -1,6 +1,7 @@
 #  SPDX-FileCopyrightText: 2024 Thomas Bechtold <thomasbechtold@jpberlin.de>
 #  SPDX-License-Identifier: GPL-3.0-or-later
 
+import pathlib
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
@@ -58,9 +59,11 @@ class ConfigPPA(BaseModel):
     uri: str
     suites: List[str]
     components: List[str]
-    fingerprint: str
+    fingerprint: Optional[str] = Field(description="Optional PPA fingerprint (key will be downloaded)", default=None)
+    signed_by: Optional[pathlib.Path] = Field(description="Optional path to a key file", default=None)
     username: Optional[str]
     password: Optional[str]
+    auth_lines: Optional[List[str]] = Field(description="Optional list of APT auth.conf.d/ file lines", default=[])
     pin_name: Optional[str]
     pin_priority: Optional[int]
 
