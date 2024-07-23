@@ -496,6 +496,9 @@ GRUB_FORCE_PARTUUID={partuuid}"""
                     ppa["pin_name"],
                     ppa["pin_priority"],
                 ):
+                    cmd = ["/usr/sbin/chroot", self._ctx.chroot_path, "apt-cache", "policy"]
+                    out, err = run_command(cmd)
+                    logger.info(out)
                     yield
         else:
             # no PPAs setup - but do at least one apt-get update
