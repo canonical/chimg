@@ -61,11 +61,11 @@ class ConfigPPA(BaseModel):
     components: List[str]
     fingerprint: Optional[str] = Field(description="Optional PPA fingerprint (key will be downloaded)", default=None)
     signed_by: Optional[pathlib.Path] = Field(description="Optional path to a key file", default=None)
-    username: Optional[str]
-    password: Optional[str]
+    username: Optional[str] = Field(description="Optional PPA username", default=None)
+    password: Optional[str] = Field(description="Optional PPA password", default=None)
     auth_lines: Optional[List[str]] = Field(description="Optional list of APT auth.conf.d/ file lines", default=[])
-    pin_name: Optional[str]
-    pin_priority: Optional[int]
+    pin_name: Optional[str] = Field(description="Optional PPA Pin name", default=None)
+    pin_priority: Optional[int] = Field(description="Optional PPA Pin priority", default=None)
 
 
 class ConfigFilesystem(BaseModel):
