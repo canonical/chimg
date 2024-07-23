@@ -20,6 +20,13 @@ def _check_file_exists(file_path: pathlib.Path, chroot_path: pathlib.Path):
     assert os.path.exists(chroot_path / file_path)
 
 
+def _check_file_not_exists(file_path: pathlib.Path, chroot_path: pathlib.Path):
+    """
+    check that a given file does not exists
+    """
+    assert not os.path.exists(chroot_path / file_path)
+
+
 def _check_deb_installed(deb_name: str, deb_hold: bool, chroot_path: pathlib.Path):
     """
     check that a given deb package is installed
@@ -37,7 +44,7 @@ def _check_deb_installed(deb_name: str, deb_hold: bool, chroot_path: pathlib.Pat
         [
             "configs/kernel-only.yaml",
             [
-                (partial(_check_file_exists, pathlib.Path("/boot/vmlinuz"))),
+                (partial(_check_file_exists, pathlib.Path("boot/vmlinuz"))),
                 (partial(_check_deb_installed, "linux-aws", False)),
             ],
         ],
@@ -47,6 +54,15 @@ def _check_deb_installed(deb_name: str, deb_hold: bool, chroot_path: pathlib.Pat
                 (partial(_check_deb_installed, "chrony", False)),
                 (partial(_check_deb_installed, "fuse3", True)),
                 (partial(_check_deb_installed, "ec2-hibinit-agent", False)),
+            ],
+        ],
+        [
+            "configs/ppas.yaml",
+            [
+                (partial(_check_file_exists, pathlib.Path("etc/apt/sources.list.d/deadsnakes.sources"))),
+                (partial(_check_file_exists, pathlib.Path("etc/apt/trusted.gpg.d/deadsnakes.gpg"))),
+                (partial(_check_file_not_exists, pathlib.Path("etc/apt/sources.list.d/kernel-unstable.sources"))),
+                (partial(_check_file_not_exists, pathlib.Path("etc/apt/trusted.gpg.d/kernel-unstable.gpg"))),
             ],
         ],
     ],

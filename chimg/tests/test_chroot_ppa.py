@@ -14,7 +14,7 @@ curdir = pathlib.Path(__file__).parent.resolve()
 
 
 @pytest.mark.parametrize(
-    "name,uri,suites,components,key_fingerprint,signed_by,username,password,auth_lines,pin_name,pin_priority,expected_files",  # noqa: E501
+    "name,uri,suites,components,keep,key_fingerprint,signed_by,username,password,auth_lines,pin_name,pin_priority,expected_files",  # noqa: E501
     [
         # basic PPA without any features
         (
@@ -22,6 +22,7 @@ curdir = pathlib.Path(__file__).parent.resolve()
             "uri",
             ["jammy"],
             ["main"],
+            False,
             None,
             None,
             None,
@@ -47,6 +48,7 @@ Components: main""",
             "uri",
             ["noble"],
             ["main", "universe"],
+            False,
             None,
             None,
             None,
@@ -76,6 +78,7 @@ Components: main universe""",
             "uri",
             ["noble"],
             ["main", "universe"],
+            False,
             "DBB1FC89762BF6B96707C4059BC0A1A1622CF918",
             None,
             None,
@@ -98,6 +101,7 @@ def test__ppa_setup(
     uri,
     suites,
     components,
+    keep,
     key_fingerprint,
     signed_by,
     username,
@@ -123,6 +127,7 @@ def test__ppa_setup(
         uri,
         suites,
         components,
+        keep,
         key_fingerprint,
         signed_by,
         username,

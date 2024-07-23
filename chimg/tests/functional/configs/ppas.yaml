@@ -1,0 +1,19 @@
+---
+ppas:
+  - name: deadsnakes
+    uri: https://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu
+    suites:
+      - jammy
+    components:
+      - main
+    fingerprint: F23C5A6CF475977595C89F51BA6932366A755776
+    keep: true
+
+  - name: kernel-unstable
+    uri: https://ppa.launchpadcontent.net/canonical-kernel-team/unstable/ubuntu
+    suites:
+      - noble
+    components:
+      - main
+    fingerprint: 110E21D8B0E2A1F0243AF6820856F197B892ACEA
+    keep: false
