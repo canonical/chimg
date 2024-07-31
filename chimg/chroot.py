@@ -304,7 +304,15 @@ class Chroot:
         Use _debs_install() to install all configured deb packages
         """
         run_command(
-            ["/usr/sbin/chroot", self._ctx.chroot_path, "apt-get", "install", "--assume-yes", deb["name"]],
+            [
+                "/usr/sbin/chroot",
+                self._ctx.chroot_path,
+                "apt-get",
+                "install",
+                "--assume-yes",
+                "--allow-downgrades",
+                deb["name"],
+            ],
             env={"DEBIAN_FRONTEND": "noninteractive"},
         )
         if deb.get("hold", False):

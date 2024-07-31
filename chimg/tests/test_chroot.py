@@ -48,7 +48,15 @@ def test__deb_install(mock_subprocess, chroot_dir, deb):
     cr = chroot.Chroot(ctx)
     cr._deb_install(deb)
     mock_subprocess.assert_any_call(
-        ["/usr/sbin/chroot", chroot_dir.as_posix(), "apt-get", "install", "--assume-yes", deb["name"]],
+        [
+            "/usr/sbin/chroot",
+            chroot_dir.as_posix(),
+            "apt-get",
+            "install",
+            "--assume-yes",
+            "--allow-downgrades",
+            deb["name"],
+        ],
         cwd=None,
         env={"DEBIAN_FRONTEND": "noninteractive"},
         capture_output=True,
