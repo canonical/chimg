@@ -1,0 +1,448 @@
+{
+    "$defs": {
+      "ConfigCommand": {
+        "properties": {
+          "cmd": {
+            "title": "Cmd",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cmd"
+        ],
+        "title": "ConfigCommand",
+        "type": "object"
+      },
+      "ConfigDebPackage": {
+        "description": "A deb package configuration",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "hold": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": false,
+            "description": "Optional hold the package",
+            "title": "Hold"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "ConfigDebPackage",
+        "type": "object"
+      },
+      "ConfigFile": {
+        "description": "A file configuration",
+        "properties": {
+          "destination": {
+            "title": "Destination",
+            "type": "string"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional file owner",
+            "title": "Owner"
+          },
+          "group": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional file group",
+            "title": "Group"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional file mode",
+            "title": "Mode"
+          }
+        },
+        "required": [
+          "destination",
+          "content"
+        ],
+        "title": "ConfigFile",
+        "type": "object"
+      },
+      "ConfigFilesystem": {
+        "properties": {
+          "root_fs_label": {
+            "title": "Root Fs Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "root_fs_label"
+        ],
+        "title": "ConfigFilesystem",
+        "type": "object"
+      },
+      "ConfigPPA": {
+        "description": "A PPA configuration",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "uri": {
+            "title": "Uri",
+            "type": "string"
+          },
+          "suites": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Suites",
+            "type": "array"
+          },
+          "components": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Components",
+            "type": "array"
+          },
+          "keep": {
+            "description": "Keep the PPA configured",
+            "title": "Keep",
+            "type": "boolean"
+          },
+          "fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional PPA fingerprint (key will be downloaded)",
+            "title": "Fingerprint"
+          },
+          "signed_by": {
+            "anyOf": [
+              {
+                "format": "path",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional path to a key file",
+            "title": "Signed By"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional PPA username",
+            "title": "Username"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional PPA password",
+            "title": "Password"
+          },
+          "auth_lines": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": [],
+            "description": "Optional list of APT auth.conf.d/ file lines",
+            "title": "Auth Lines"
+          },
+          "pin_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional PPA Pin name",
+            "title": "Pin Name"
+          },
+          "pin_priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional PPA Pin priority",
+            "title": "Pin Priority"
+          }
+        },
+        "required": [
+          "name",
+          "uri",
+          "suites",
+          "components",
+          "keep"
+        ],
+        "title": "ConfigPPA",
+        "type": "object"
+      },
+      "ConfigSnap": {
+        "description": "General snap configuration required for preseeding",
+        "properties": {
+          "assertion_brand": {
+            "title": "Assertion Brand",
+            "type": "string"
+          },
+          "assertion_model": {
+            "title": "Assertion Model",
+            "type": "string"
+          },
+          "aa_features_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aa Features Path"
+          },
+          "snaps": {
+            "items": {
+              "$ref": "#/$defs/ConfigSnapPackage"
+            },
+            "title": "Snaps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "assertion_brand",
+          "assertion_model",
+          "aa_features_path",
+          "snaps"
+        ],
+        "title": "ConfigSnap",
+        "type": "object"
+      },
+      "ConfigSnapPackage": {
+        "description": "A snap package configuration",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "channel": {
+            "title": "Channel",
+            "type": "string"
+          },
+          "classic": {
+            "default": false,
+            "title": "Classic",
+            "type": "boolean"
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Revision"
+          }
+        },
+        "required": [
+          "name",
+          "channel"
+        ],
+        "title": "ConfigSnapPackage",
+        "type": "object"
+      }
+    },
+    "description": "The base configuration",
+    "properties": {
+      "kernel": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Optional kernel deb package name",
+        "title": "Kernel"
+      },
+      "fs": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/ConfigFilesystem"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Optional filesystem options"
+      },
+      "ppas": {
+        "anyOf": [
+          {
+            "items": {
+              "$ref": "#/$defs/ConfigPPA"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": [],
+        "description": "Optional list of PPAs",
+        "title": "Ppas"
+      },
+      "debs": {
+        "anyOf": [
+          {
+            "items": {
+              "$ref": "#/$defs/ConfigDebPackage"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": [],
+        "description": "Optional list of debs",
+        "title": "Debs"
+      },
+      "snap": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/ConfigSnap"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Optional snap configuration and preseeded snaps"
+      },
+      "files": {
+        "anyOf": [
+          {
+            "items": {
+              "$ref": "#/$defs/ConfigFile"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": [],
+        "description": "Optional list of files",
+        "title": "Files"
+      },
+      "cmds_pre": {
+        "anyOf": [
+          {
+            "items": {
+              "$ref": "#/$defs/ConfigCommand"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": [],
+        "description": "Optional list of pre commands",
+        "title": "Cmds Pre"
+      },
+      "cmds_post": {
+        "anyOf": [
+          {
+            "items": {
+              "$ref": "#/$defs/ConfigCommand"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": [],
+        "description": "Optional list of post commands",
+        "title": "Cmds Post"
+      }
+    },
+    "title": "Config",
+    "type": "object"
+  }
