@@ -3,6 +3,15 @@ How-to guides
 
 These guides provide instructions for performing different operations with `chimg`.
 
+Install chimg
+-------------
+
+`chimg` is available as a snap on the snapstore:
+
+.. code-block:: shell
+
+    sudo snap install chimg --classic
+
 Install debian packages in a given chroot directory
 ---------------------------------------------------
 
