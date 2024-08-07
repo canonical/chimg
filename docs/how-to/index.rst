@@ -30,3 +30,11 @@ with:
 .. code-block:: shell
 
    sudo chimg --log-console chrootfs config.yaml /path/to/chroot/
+
+Integration with livecd-rootfs
+------------------------------
+
+`chimg` does integrate well with `livecd-rootfs`. Eg. `chimg` respects existing mount points
+which means it doesn't try to mount eg `/dev/` if that is already mounted within the given
+chroot directory.
+`chimg` can be called multiple times with different configuration files.
