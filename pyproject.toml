@@ -46,6 +46,7 @@ optional = true
 
 [tool.poetry.group.doc.dependencies]
 Sphinx = "*"
+autodoc-pydantic = "^2.0.1"
 
 [tool.poetry.scripts]
 chimg = "chimg.cli:main"

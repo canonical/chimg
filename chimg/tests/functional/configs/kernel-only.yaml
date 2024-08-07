@@ -1,8 +1,3 @@
 ---
 # a config testing only the kernel installation
-fs:
-  root_fs_label: "cloudimg-rootfs"
-snap_config:
-  assertion_brand: canonical
-  assertion_model: aws-classic
 kernel: "linux-aws"

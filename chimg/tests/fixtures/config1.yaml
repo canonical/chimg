@@ -2,9 +2,5 @@
 kernel: "linux-aws"
 fs:
   root_fs_label: "cloudimg-rootfs"
-snap_config:
-  assertion_brand: canonical
-  assertion_model: aws-classic
-  aa_features_path: "aa-features-example"  
 debs:
   - name: hello
