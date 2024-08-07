@@ -6,14 +6,7 @@ to modify a Ubuntu chroot directory based on a given configuration
 file.
 
 .. toctree::
+   :hidden:
    :maxdepth: 2
-   :caption: Contents:
 
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   Reference <reference/index>
