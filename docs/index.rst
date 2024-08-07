@@ -9,4 +9,5 @@ file.
    :hidden:
    :maxdepth: 2
 
+   How-to guides <how-to/index>
    Reference <reference/index>
