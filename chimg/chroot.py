@@ -158,7 +158,7 @@ class Chroot:
 
         snaps_yaml = y["snaps"]
         if name in [snap["name"] for snap in snaps_yaml]:
-            logger.warn(f"Snap {name} is already in seed.yaml. skipping")
+            logger.warning(f"Snap {name} is already in seed.yaml. skipping")
             return
 
         snap_yaml = {
@@ -550,7 +550,7 @@ GRUB_FORCE_PARTUUID={partuuid}"""
         ]
 
         if repo_key_fingerprint and signed_by:
-            logger.warn("repo key fingerprint and signed_by are mutually exclusive. Using repo_key_fingerprint")
+            logger.warning("repo key fingerprint and signed_by are mutually exclusive. Using repo_key_fingerprint")
 
         # get & write the key for the given fingerprint and write it
         if repo_key_fingerprint:
