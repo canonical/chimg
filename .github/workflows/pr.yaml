@@ -20,7 +20,7 @@ jobs:
       - name: Install tox
         run: |
           sudo apt install -y tox
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Run tox
         # Run tox using the version of Python in `PATH`
         run: tox
@@ -30,7 +30,7 @@ jobs:
       - name: Install tox and mmdebstrap
         run: |
           sudo apt install -y mmdebstrap tox
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Run tox
         # Run functional tests through tox
         run: sudo tox -efunctional
