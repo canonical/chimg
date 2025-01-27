@@ -18,6 +18,18 @@ class ConfigFile(BaseModel):
     mode: Optional[int] = Field(description="Optional file mode", default=None)
 
 
+class ConfigLocalUpload(BaseModel):
+    """
+    A file or directory configuration uploaded/copied from the host
+    """
+
+    source: str = Field(description="Source file or directory")
+    destination: str = Field(description="Destination file or directory")
+    owner: Optional[str] = Field(description="Optional file owner", default=None)
+    group: Optional[str] = Field(description="Optional file group", default=None)
+    mode: Optional[int] = Field(description="Optional file mode", default=None)
+
+
 class ConfigSnapPackage(BaseModel):
     """
     A snap package configuration
@@ -88,5 +100,6 @@ class Config(BaseModel):
     debs: Optional[List[ConfigDebPackage]] = Field(description="Optional list of debs", default=[])
     snap: Optional[ConfigSnap] = Field(description="Optional snap configuration and preseeded snaps", default=None)
     files: Optional[List[ConfigFile]] = Field(description="Optional list of files", default=[])
+    local_uploads: Optional[List[ConfigLocalUpload]] = Field(description="Optional list of local uploads", default=[])
     cmds_pre: Optional[List[ConfigCommand]] = Field(description="Optional list of pre commands", default=[])
     cmds_post: Optional[List[ConfigCommand]] = Field(description="Optional list of post commands", default=[])
