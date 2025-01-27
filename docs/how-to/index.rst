@@ -40,6 +40,19 @@ with:
 
    sudo chimg --log-console chrootfs config.yaml /path/to/chroot/
 
+Create and upload files to a given chroot directory
+---------------------------------------------------
+
+.. literalinclude:: ../config-samples/config-files-only.yaml
+   :language: yaml
+
+Apply those changes to a given chroot directory (in this case `/path/to/chroot/`)
+with:
+
+.. code-block:: shell
+
+   sudo chimg --log-console chrootfs docs/config-samples/config-files-only.yaml /path/to/chroot/
+
 Integration with livecd-rootfs
 ------------------------------
 
