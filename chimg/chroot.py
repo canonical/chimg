@@ -2,6 +2,7 @@
 #  SPDX-License-Identifier: GPL-3.0-or-later
 
 import multiprocessing
+import shutil
 import textwrap
 from pathlib import Path
 from typing import List, Optional, Dict, Tuple
@@ -14,6 +15,7 @@ import glob
 import yaml
 
 from chimg.common import run_command
+from chimg.config import ConfigFile
 from chimg.context import Context
 
 logger = logging.getLogger(__name__)
@@ -271,23 +273,60 @@ class Chroot:
         """
         logger.info("Installing files ...")
         for f in self._ctx.conf["files"]:
-            self._file_install(f)
+            if f.get("content"):
+                self._file_install_from_content(ConfigFile(**f))
+            else:
+                self._file_install_from_path(ConfigFile(**f))
         logger.info("Files installed")
 
-    def _file_install(self, f: Dict):
+    def _file_install_from_content(self, file_config: ConfigFile):
         """
         Install a single file
         """
-        f_path = f"{self._ctx.chroot_path}/{f['destination']}"
+        f_path = f"{self._ctx.chroot_path}/{file_config.destination}"
         os.makedirs(os.path.dirname(f_path), exist_ok=True)
+        if not file_config.content:
+            raise ValueError("File content is required to create file using content")
         with open(f_path, "w") as file:
-            file.write(f["content"])
-        if f.get("owner", None):
-            os.chown(f_path, f["owner"], -1)
-        if f.get("group", None):
-            os.chown(f_path, -1, f["group"])
-        if f.get("mode", None):
-            os.chmod(f_path, f["mode"])
+            file.write(file_config.content)
+        if file_config.owner is not None:
+            os.chown(f_path, int(file_config.owner), -1)
+        if file_config.group is not None:
+            os.chown(f_path, -1, int(file_config.group))
+        if file_config.mode is not None:
+            os.chmod(f_path, file_config.mode)
+        logger.info(f"Created file {f_path} using provided file content")
+
+    def _file_install_from_path(self, config_file: ConfigFile):
+        """
+        Copy a local file or directory to the chroot
+        """
+        src = config_file.source
+        dst = config_file.destination
+
+        if not src:
+            raise ValueError("Source file or directory is required to copy file(s) into chroot")
+
+        # if the source is a directory, copy it recursively
+        if os.path.isdir(src):
+            if not os.path.isdir(f"{self._ctx.chroot_path}/{dst}"):
+                os.makedirs(f"{self._ctx.chroot_path}/{dst}", exist_ok=True)
+            # copy src dir to dst dir recursively
+            shutil.copytree(src, f"{self._ctx.chroot_path}/{dst}", dirs_exist_ok=True)
+            logger.info(f"Copied directory {src} to {dst}")
+        # otherwise, copy the file
+        else:
+            # copy src file to dst file path
+            shutil.copy2(src, f"{self._ctx.chroot_path}/{dst}")
+            logger.info(f"Copied file {src} to {dst}")
+        # only set the owner/group/mode to the destination if they are set
+        # all files/dirs inside the destination will be copied with their original permissions and owner/group
+        if config_file.owner is not None:
+            os.chown(f"{self._ctx.chroot_path}/{dst}", int(config_file.owner), -1)
+        if config_file.group is not None:
+            os.chown(f"{self._ctx.chroot_path}/{dst}", -1, int(config_file.group))
+        if config_file.mode is not None:
+            os.chmod(f"{self._ctx.chroot_path}/{dst}", config_file.mode)
 
     def _debs_install(self):
         """
