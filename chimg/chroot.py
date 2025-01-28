@@ -2,6 +2,7 @@
 #  SPDX-License-Identifier: GPL-3.0-or-later
 
 import multiprocessing
+import shutil
 import textwrap
 from pathlib import Path
 from typing import List, Optional, Dict, Tuple
@@ -37,6 +38,7 @@ class Chroot:
             self._kernel_install()
             self._debs_install()
             self._files_install()
+            self._local_uploads()
             # setup snap assertions for preseeding
             self._snap_assertion_install()
             # install snaps
@@ -288,6 +290,36 @@ class Chroot:
             os.chown(f_path, -1, f["group"])
         if f.get("mode", None):
             os.chmod(f_path, f["mode"])
+
+    def _local_uploads(self):
+        """
+        Upload all configured local files/dirs
+        """
+        logger.info("Uploading local files ...")
+        for f in self._ctx.conf["local_uploads"]:
+            self._local_upload(f)
+        logger.info("Local files uploaded")
+
+    def _local_upload(self, f: Dict):
+        """
+        Copy a local file or directory to the chroot
+        """
+        src = f["source"]
+        dst = f["destination"]
+        # if the source is a directory, make sure the destination is a directory
+        if os.path.isdir(src):
+            if not os.path.isdir(f"{self._ctx.chroot_path}/{dst}"):
+                os.makedirs(f"{self._ctx.chroot_path}/{dst}")
+        if os.path.isdir(src):
+            shutil.copytree(src, f"{self._ctx.chroot_path}/{dst}", dirs_exist_ok=True)
+        else:
+            shutil.copy2(src, f"{self._ctx.chroot_path}/{dst}")
+        if f.get("owner", None):
+            os.chown(f"{self._ctx.chroot_path}/{dst}", f["owner"], -1)
+        if f.get("group", None):
+            os.chown(f"{self._ctx.chroot_path}/{dst}", -1, f["group"])
+        if f.get("mode", None):
+            os.chmod(f"{self._ctx.chroot_path}/{dst}", f["mode"])
 
     def _debs_install(self):
         """
