@@ -2,6 +2,7 @@
 #  SPDX-License-Identifier: GPL-3.0-or-later
 
 import multiprocessing
+import shutil
 import textwrap
 from pathlib import Path
 from typing import List, Optional, Dict, Tuple
@@ -271,7 +272,10 @@ class Chroot:
         """
         logger.info("Installing files ...")
         for f in self._ctx.conf["files"]:
-            self._file_install(f)
+            if f.get("content"):
+                self._file_install(f)
+            else:
+                self._local_file_upload(f)
         logger.info("Files installed")
 
     def _file_install(self, f: Dict):
@@ -288,6 +292,33 @@ class Chroot:
             os.chown(f_path, -1, f["group"])
         if f.get("mode", None):
             os.chmod(f_path, f["mode"])
+        logger.info(f"Created file {f_path} using provided file content")
+
+    def _local_file_upload(self, f: Dict):
+        """
+        Copy a local file or directory to the chroot
+        """
+        src = f["source"]
+        dst = f["destination"]
+        is_dir = os.path.isdir(src)
+        # if the source is a directory, make sure the destination is a directory
+        if is_dir:
+            if not os.path.isdir(f"{self._ctx.chroot_path}/{dst}"):
+                os.makedirs(f"{self._ctx.chroot_path}/{dst}", exist_ok=True)
+        if os.path.isdir(src):
+            shutil.copytree(src, f"{self._ctx.chroot_path}/{dst}", dirs_exist_ok=True)
+        else:
+            shutil.copy2(src, f"{self._ctx.chroot_path}/{dst}")
+        if f.get("owner", None):
+            os.chown(f"{self._ctx.chroot_path}/{dst}", f["owner"], -1)
+        if f.get("group", None):
+            os.chown(f"{self._ctx.chroot_path}/{dst}", -1, f["group"])
+        if f.get("mode", None):
+            os.chmod(f"{self._ctx.chroot_path}/{dst}", f["mode"])
+        if is_dir:
+            logger.info(f"Copied directory {src} to {dst}")
+        else:
+            logger.info(f"Copied file {src} to {dst}")
 
     def _debs_install(self):
         """

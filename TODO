@@ -1,6 +1,5 @@
 * snap cohort key support
 * default snap channel per suite (eg. stable/ubuntu-24.10)
-* copy files in addition to create files with given content
 * remove autoremovable debs
 * purge removed packages
 * unittests

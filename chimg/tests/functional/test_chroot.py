@@ -65,6 +65,54 @@ def _check_deb_installed(deb_name: str, deb_hold: bool, chroot_path: pathlib.Pat
                 (partial(_check_file_not_exists, pathlib.Path("etc/apt/trusted.gpg.d/kernel-unstable.gpg"))),
             ],
         ],
+        pytest.param(
+            "configs/files.yaml",
+            [
+                # test uploading a file using content
+                (partial(_check_file_exists, pathlib.Path("single_file_upload/using_content.txt"))),
+                # test uploading a file using local source path
+                (partial(_check_file_exists, pathlib.Path("single_file_upload/using_source.txt"))),
+                # test uploading a directory with single file
+                (partial(_check_file_exists, pathlib.Path("directory_upload_1/file_1.txt"))),
+                # test uploading a directory with multiple files
+                (partial(_check_file_exists, pathlib.Path("directory_upload_2/file_1.txt"))),
+                (partial(_check_file_exists, pathlib.Path("directory_upload_2/file_2.txt"))),
+                # test recursive directory upload that contains a file and a sub-directory inside
+                (
+                    partial(
+                        _check_file_exists,
+                        pathlib.Path(
+                            "examples_files_directory/directory_with_multiple_files/file_1.txt",
+                        ),
+                    )
+                ),
+                (
+                    partial(
+                        _check_file_exists,
+                        pathlib.Path(
+                            "examples_files_directory/directory_with_multiple_files/file_2.txt",
+                        ),
+                    )
+                ),
+                (
+                    partial(
+                        _check_file_exists,
+                        pathlib.Path(
+                            "examples_files_directory/directory_with_single_file/file_1.txt",
+                        ),
+                    )
+                ),
+                (
+                    partial(
+                        _check_file_exists,
+                        pathlib.Path(
+                            "examples_files_directory/single_file.txt",
+                        ),
+                    )
+                ),
+            ],
+            id="test all config file methods",
+        ),
     ],
 )
 @pytest.mark.realchroot
