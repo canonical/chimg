@@ -1,0 +1,17 @@
+files:
+  # Single file upload using content
+  - content: "This is a file created using content"
+    destination: /single_file_upload/using_content.txt
+  # Single file upload using source
+  - source: chimg/tests/functional/example_files/single_file.txt
+    destination: /single_file_upload/using_source.txt
+  # Uploading a directory with a single file in it
+  - source: chimg/tests/functional/example_files/directory_with_single_file
+    destination: /directory_upload_1
+  # Uploading a directory with multiple files in it
+  - source: chimg/tests/functional/example_files/directory_with_multiple_files
+    destination: /directory_upload_2
+  # Uploading a directory that has a sub-directory in it
+  - source: chimg/tests/functional/example_files
+    destination: /examples_files_directory
+  
