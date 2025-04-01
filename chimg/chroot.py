@@ -2,6 +2,7 @@
 #  SPDX-License-Identifier: GPL-3.0-or-later
 
 import multiprocessing
+import sys
 import textwrap
 from pathlib import Path
 from typing import List, Optional, Dict, Tuple
@@ -12,9 +13,11 @@ import tempfile
 import os
 import glob
 import yaml
-
+import subprocess
+import shutil
 from chimg.common import run_command
 from chimg.context import Context
+from chimg import snap_seed_parse
 
 logger = logging.getLogger(__name__)
 
@@ -687,3 +690,113 @@ Pin-Priority: {repo_pin_priority}
             logger.info("mount points setup done")
             yield
         logger.info("mount points cleanup done")
+
+    def create_manifest(
+        self,
+        base_output_path: str | Path,
+        generate_sbom: bool = False,
+        sbom_log: Optional[str | Path] = None,
+        overwrite: bool = False,
+    ):
+        """
+
+        Args:
+            base_output_path (str | Path): The output path without file extension(s) for the created files.
+            Will add file extensions
+            sbom_log (Optional[str | Path]): The path for the SBOM log file. If None, no log file will be created.
+            overwrite (bool): If True, will overwrite existing files. If False, will raise an error if files exist.
+        """
+
+        base_output_path = str(base_output_path)
+        chroot_root = self._ctx.chroot_path
+        sbom_document_name = f"{base_output_path}.sbom"
+        sbom_file_name = f"{base_output_path}.sbom.spdx"
+        sbom_log = str(sbom_log) or f"{base_output_path}.sbom.log"
+        manifest_file = f"{base_output_path}.manifest"
+        filelist_file = f"{base_output_path}.filelist"
+
+        for file in [manifest_file, filelist_file, sbom_file_name]:
+            if os.path.exists(file) and not overwrite:
+                logger.error(f"File {file} already exists. Use --overwrite to overwrite existing files.")
+                exit(1)
+            elif os.path.exists(file) and overwrite:
+                logger.warning(f"File {file} already exists. Overwriting...")
+                os.remove(file)
+
+        logger.info("Adding packages to manifest...")
+        with open(manifest_file, "w") as f:
+            subprocess.run(["dpkg-query", "--show", f"--admindir={chroot_root}/var/lib/dpkg"], stdout=f, check=True)
+
+        logger.info("Adding snaps to manifest...")
+        logger.debug("Calling snap_seed_parse module")
+        snap_seed_parse.main(
+            chroot_path=chroot_root,
+            output_file=manifest_file,
+        )
+        logger.debug("Finished calling snap_seed_parse module")
+        logger.info("Manifest generated: %s", manifest_file)
+
+        logger.info("Generating filelist...")
+        with open(filelist_file, "w") as f:
+            subprocess.run(["find", "-xdev"], stdout=f, check=True, cwd=chroot_root)
+        subprocess.run(["sort", "-o", filelist_file, filelist_file], check=True)
+        logger.info("Filelist generated: %s", filelist_file)
+
+        if generate_sbom:
+            # Ensure cpc-sbom is installed
+            if shutil.which("cpc-sbom") is None:
+                subprocess.run(["sudo", "snap", "install", "--classic", "--edge", "cpc-sbom"], check=True)
+
+            # Generate the SBOM
+            with open(sbom_file_name, "w") as sbom_out, open(sbom_log, "w") as sbom_err:
+                result = subprocess.run(
+                    [
+                        "cpc-sbom",
+                        "--rootdir",
+                        chroot_root,
+                        "--ignore-copyright-parsing-errors",
+                        "--ignore-copyright-file-not-found-errors",
+                        "--document-name",
+                        sbom_document_name,
+                    ],
+                    stdout=sbom_out,
+                    stderr=sbom_err,
+                )
+            if result.returncode != 0:
+                logger.error("ERROR: SBOM generation failed.")
+                with open(sbom_log, "r") as log_file:
+                    logger.debug(log_file.read())
+                exit(1)
+            else:
+                logger.info("SBOM generation succeeded!")
+
+        logger.info("Done creating manifest and filelist!")
+
+
+def chrootfs_entry_point(args) -> None:
+    """
+    Modify given chroot FS according to the given config
+    """
+    if not os.path.exists(args.config):
+        logger.error(f"config file {args.config} does not exist")
+        sys.exit(1)
+
+    if not os.path.exists(args.rootfspath):
+        logger.error(f"rootfs path {args.rootfspath} does not exist")
+        sys.exit(1)
+
+    ctx = Context(args.config, args.rootfspath)
+    chroot = Chroot(ctx)
+    chroot.apply()
+
+    if (args.generate_sbom or args.overwrite) and not args.output_files_name:
+        logger.error("If --generate-sbom or --overwrite is set, --output-files-name must be specified.")
+        sys.exit(1)
+
+    if args.output_files_name:
+        chroot.create_manifest(
+            base_output_path=args.output_files_name,
+            generate_sbom=args.generate_sbom,
+            sbom_log=None,
+            overwrite=args.overwrite,
+        )
