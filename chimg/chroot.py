@@ -129,8 +129,9 @@ class Chroot:
         # install required cores
         self._snaps_base_install(snap_infos)
 
-        # install snapd
-        self._snap_install("snapd", "stable")
+        # install snapd only if not already explicitly installed
+        if "snapd" not in snap_infos.keys():
+            self._snap_install("snapd", "stable")
         logger.info("Snaps installed")
 
     def _snap_info(self, path: str):
