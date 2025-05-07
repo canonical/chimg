@@ -139,6 +139,10 @@ class Chroot:
         Install a single snap
         Use _snaps_install() to install all configured snaps
         """
+        # make sure the final target directories exist
+        Path(f"{self._ctx.chroot_path}/var/lib/snapd/seed/assertions").mkdir(parents=True, exist_ok=True)
+        Path(f"{self._ctx.chroot_path}/var/lib/snapd/seed/snaps").mkdir(parents=True, exist_ok=True)
+
         arch, _ = run_command(["dpkg", "--print-architecture"])
         with tempfile.TemporaryDirectory(prefix="chimg_") as tmpdir:
             # FIXME: add cohort key support
