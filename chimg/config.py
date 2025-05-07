@@ -37,7 +37,7 @@ class ConfigSnap(BaseModel):
     assertion_brand: str
     assertion_model: str
     # the apparmor features directory (must match the installed kernel to make preseeding work)
-    aa_features_path: Optional[str]
+    aa_features_path: Optional[str] = Field(description="Path to the apparmor feature directory", default=None)
     snaps: List[ConfigSnapPackage]
 
 
