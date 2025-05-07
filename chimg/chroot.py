@@ -104,8 +104,7 @@ class Chroot:
         if len(snaps) != 1:
             raise RuntimeError(f"Expected exactly one snap file for {name}, got {len(snaps)}")
 
-        snap_info, _ = run_command(["snap", "info", "--verbose", snaps[0]])
-        snap_info_yaml = yaml.safe_load(snap_info)
+        snap_info_yaml = self._snap_info(snaps[0])
         if "type" not in snap_info_yaml.keys() or snap_info_yaml["type"] != "base":
             if "base" not in snap_info_yaml.keys():
                 raise RuntimeError(f"Snap {name} has no base set which means its 'core' which is no longer allowed")
@@ -114,6 +113,18 @@ class Chroot:
             snap_cores = glob.glob(f"{self._ctx.chroot_path}/var/lib/snapd/seed/snaps/{snap_info_yaml['base']}*.snap")
             if len(snap_cores) == 0:
                 self._snap_install(snap_info_yaml["base"], "stable")
+
+    def _snap_info(self, path: str):
+        """
+        Get information for a downloaded snap
+        this must be done from the downloaded .snap given that the API
+        doesn't support channel and revision.
+        :param path: the path to the .snap file
+        :type path: str
+        """
+        info, _ = run_command(["snap", "info", "--verbose", path])
+        info_yaml = yaml.safe_load(info)
+        return info_yaml
 
     def _snap_install(self, name: str, channel: str, classic: bool = False, revision: Optional[str] = None):
         """
