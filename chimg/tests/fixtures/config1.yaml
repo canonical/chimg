@@ -4,3 +4,7 @@ fs:
   root_fs_label: "cloudimg-rootfs"
 debs:
   - name: hello
+snap:
+  assertion_brand: canonical
+  assertion_model: aws-classic
+  snaps: []

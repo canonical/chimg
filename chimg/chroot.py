@@ -1,13 +1,15 @@
 #  SPDX-FileCopyrightText: 2024 Thomas Bechtold <thomasbechtold@jpberlin.de>
 #  SPDX-License-Identifier: GPL-3.0-or-later
 
+from dataclasses import dataclass
 import multiprocessing
 import textwrap
 from pathlib import Path
-from typing import List, Optional, Dict, Tuple
+from typing import List, Optional, Dict, Tuple, Any
 import logging
 from contextlib import contextmanager, ExitStack
 import urllib.request
+import re
 import tempfile
 import os
 import glob
@@ -17,6 +19,19 @@ from chimg.common import run_command
 from chimg.context import Context
 
 logger = logging.getLogger(__name__)
+
+
+SNAPD_BASE_DIR = "/var/lib/snapd"
+SNAPD_SEED_DIR = f"{SNAPD_BASE_DIR}/seed"
+
+
+@dataclass
+class SnapInfo:
+    name: str
+    filename: str
+    channel: str
+    classic: bool
+    info: Dict[str, Any]
 
 
 class Chroot:
@@ -79,6 +94,31 @@ class Chroot:
             if fname:
                 os.remove(fname)
 
+    def _snaps_base_install(self, snap_infos: Dict[str, SnapInfo]) -> Dict[str, SnapInfo]:
+        """
+        Install the required core/coreXX snaps for the given snaps
+        """
+        # install the required base snaps
+        required_cores = set()
+        for snap, si in snap_infos.items():
+            if snap == "snapd":
+                # snapd is self-contained, ignore base
+                continue
+            if re.match(r"^core(?:\d\d)?$", snap):
+                # core and core## are self-contained, ignore base
+                continue
+
+            # the core for the current snap
+            core_name = si.info.get("base", "core")
+            if core_name in snap_infos.keys():
+                # the core got already explicitly installed so don't add it here
+                continue
+            required_cores.add(core_name)
+
+        for core in required_cores:
+            snap_infos[core] = self._snap_install(name=core, channel="stable")
+        return snap_infos
+
     def _snaps_install(self):
         """
         Install all configured snaps
@@ -87,39 +127,65 @@ class Chroot:
             return
 
         logger.info("Installing snaps ...")
+        snap_infos: Dict[str, SnapInfo] = {}
         for snap in self._ctx.conf["snap"]["snaps"]:
-            self._snap_install(snap["name"], snap["channel"], snap["classic"], snap.get("revision"))
-            self._snap_base_install(snap["name"])
-        # install snapd
-        self._snap_install("snapd", "stable")
+            snap_infos[snap["name"]] = self._snap_install(
+                snap["name"], snap["channel"], snap["classic"], snap.get("revision")
+            )
+
+        # install required cores
+        snap_infos = self._snaps_base_install(snap_infos)
+
+        # install snapd only if not already explicitly installed
+        if "snapd" not in snap_infos.keys():
+            snap_infos["snapd"] = self._snap_install("snapd", "stable")
+
+        # write seed.yaml
+        self._snaps_create_seed_yaml(snap_infos)
         logger.info("Snaps installed")
 
-    def _snap_base_install(self, name: str):
+    def _snaps_create_seed_yaml(self, snap_infos: Dict[str, SnapInfo]):
         """
-        Install the base (coreXX) snap for the given snap
-        The expects that the snap was already installed via _snap_install()
+        Write out the seed.yaml file based on the given snap
         """
-        # if there are zero or multiple snaps for the given name, something is wrong
-        snaps = glob.glob(f"{self._ctx.chroot_path}/var/lib/snapd/seed/snaps/{name}*.snap")
-        if len(snaps) != 1:
-            raise RuntimeError(f"Expected exactly one snap file for {name}, got {len(snaps)}")
+        Path(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}").mkdir(parents=True, exist_ok=True)
+        seed_yaml = f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/seed.yaml"
+        snaps_yaml_list = []
+        for snap, si in snap_infos.items():
+            snap_yaml = {
+                "name": si.name,
+                "channel": si.channel,
+                "file": si.filename,
+                "classic": si.classic,
+            }
+            snaps_yaml_list.append(snap_yaml)
+        snaps_yaml = {"snaps": snaps_yaml_list}
+        # write the updated seed.yaml
+        with open(seed_yaml, "w") as f:
+            f.write(yaml.dump(snaps_yaml))
+        logger.info(f"seed.yaml file written to {seed_yaml}")
 
-        snap_info, _ = run_command(["snap", "info", "--verbose", snaps[0]])
-        snap_info_yaml = yaml.safe_load(snap_info)
-        if "type" not in snap_info_yaml.keys() or snap_info_yaml["type"] != "base":
-            if "base" not in snap_info_yaml.keys():
-                raise RuntimeError(f"Snap {name} has no base set which means its 'core' which is no longer allowed")
-            # there is a core set, so install it if not already installed
-            # check if the core snap is already installed
-            snap_cores = glob.glob(f"{self._ctx.chroot_path}/var/lib/snapd/seed/snaps/{snap_info_yaml['base']}*.snap")
-            if len(snap_cores) == 0:
-                self._snap_install(snap_info_yaml["base"], "stable")
+    def _snap_info(self, path: str):
+        """
+        Get information for a downloaded snap
+        this must be done from the downloaded .snap given that the API
+        doesn't support channel and revision.
+        :param path: the path to the .snap file
+        :type path: str
+        """
+        info, _ = run_command(["snap", "info", "--verbose", path])
+        info_yaml = yaml.safe_load(info)
+        return info_yaml
 
-    def _snap_install(self, name: str, channel: str, classic: bool = False, revision: Optional[str] = None):
+    def _snap_install(self, name: str, channel: str, classic: bool = False, revision: Optional[str] = None) -> SnapInfo:
         """
         Install a single snap
         Use _snaps_install() to install all configured snaps
         """
+        # make sure the final target directories exist
+        Path(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/assertions").mkdir(parents=True, exist_ok=True)
+        Path(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/snaps").mkdir(parents=True, exist_ok=True)
+
         arch, _ = run_command(["dpkg", "--print-architecture"])
         with tempfile.TemporaryDirectory(prefix="chimg_") as tmpdir:
             # FIXME: add cohort key support
@@ -135,43 +201,19 @@ class Chroot:
                 # TODO: use a chimg specific exception here
                 raise RuntimeError(f"Multiple .assert files available for snap {name}")
             assertion_file = assertion_files[0]
-            run_command(["mv", assertion_file, f"{self._ctx.chroot_path}/var/lib/snapd/seed/assertions"])
+            run_command(["mv", assertion_file, f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/assertions"])
             # move downloaded snap files (there should really be only a single one!)
-            snap_file = glob.glob(f"{tmpdir}/*.snap")[0]
-            run_command(["mv", snap_file, f"{self._ctx.chroot_path}/var/lib/snapd/seed/snaps"])
+            snap_files = glob.glob(f"{tmpdir}/*.snap")
+            if len(snap_files) != 1:
+                # TODO: use a chimg specific exception here
+                raise RuntimeError(f"Multiple .snap files available for snap {name}")
+            snap_file = snap_files[0]
+            snap_info_yaml = self._snap_info(snap_file)
+            run_command(["mv", snap_file, f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/snaps"])
 
-            # add snap to seed.yaml
-            self._snap_add_to_seed_yaml(name, channel, os.path.basename(snap_file), classic)
-
-    def _snap_add_to_seed_yaml(self, name: str, channel: str, snap_file: str, classic: bool):
-        """
-        add a snap to the seed.yaml file
-        """
-        seed_yaml = f"{self._ctx.chroot_path}/var/lib/snapd/seed/seed.yaml"
-        # if the file doesn't exist yet, create it with the basic yaml structure
-        if not os.path.exists(seed_yaml):
-            with open(seed_yaml, "w") as f:
-                f.write("snaps: []")
-        # read existing snaps listed in seed.yaml
-        with open(seed_yaml, "r") as f:
-            y = yaml.safe_load(f.read())
-
-        snaps_yaml = y["snaps"]
-        if name in [snap["name"] for snap in snaps_yaml]:
-            logger.warning(f"Snap {name} is already in seed.yaml. skipping")
-            return
-
-        snap_yaml = {
-            "name": name,
-            "channel": channel,
-            "file": snap_file,
-            "classic": classic,
-        }
-        snaps_yaml.append(snap_yaml)
-        y["snaps"] = snaps_yaml
-        # write the updated seed.yaml
-        with open(seed_yaml, "w+") as f:
-            f.write(yaml.dump(y))
+            return SnapInfo(
+                name=name, filename=os.path.basename(snap_file), channel=channel, classic=classic, info=snap_info_yaml
+            )
 
     def _snap_assertion_install(self):
         """
@@ -181,8 +223,8 @@ class Chroot:
             return
 
         logger.info("Installing snap assertions ...")
-        Path(f"{self._ctx.chroot_path}/var/lib/snapd/seed/assertions").mkdir(parents=True, exist_ok=True)
-        Path(f"{self._ctx.chroot_path}/var/lib/snapd/seed/snaps").mkdir(parents=True, exist_ok=True)
+        Path(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/assertions").mkdir(parents=True, exist_ok=True)
+        Path(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/snaps").mkdir(parents=True, exist_ok=True)
 
         # model assertion
         model_assertion, _ = run_command(
@@ -206,7 +248,7 @@ class Chroot:
             raise RuntimeError("Could not get account key from model assertion")
 
         # write model assertion
-        with open(f"{self._ctx.chroot_path}/var/lib/snapd/seed/assertions/model", "w") as f:
+        with open(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/assertions/model", "w") as f:
             f.write(model_assertion)
 
         # account key assertion
@@ -223,14 +265,14 @@ class Chroot:
             raise RuntimeError("Could not get account id from account key assertion")
 
         # write account key assertion
-        with open(f"{self._ctx.chroot_path}/var/lib/snapd/seed/assertions/account-key", "w") as f:
+        with open(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/assertions/account-key", "w") as f:
             f.write(account_key_assertion)
 
         # account assertion
         account_assertion, _ = run_command(["snap", "known", "--remote", "account", f"account-id={account_id}"])
 
         # write account assertion
-        with open(f"{self._ctx.chroot_path}/var/lib/snapd/seed/assertions/account", "w") as f:
+        with open(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/assertions/account", "w") as f:
             f.write(account_assertion)
 
         logger.info("Snap assertions installed")
@@ -239,7 +281,7 @@ class Chroot:
         """
         Do the preseeding
         """
-        seed_yaml_path = f"{self._ctx.chroot_path}/var/lib/snapd/seed/seed.yaml"
+        seed_yaml_path = f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/seed.yaml"
         if os.path.exists(seed_yaml_path):
             run_command(["snap", "debug", "validate-seed", seed_yaml_path])
             run_command(["/usr/lib/snapd/snap-preseed", "--reset", os.path.realpath(self._ctx.chroot_path)])
@@ -248,22 +290,24 @@ class Chroot:
             )
             # mount the apparmor features into the chroot to make snap preseeding work
             if self._ctx.conf["snap"]:
+                cmd = [
+                    "chroot",
+                    self._ctx.chroot_path,
+                    "apparmor_parser",
+                    "--skip-read-cache",
+                    "--write-cache",
+                    "--skip-kernel-load",
+                    "--verbose",
+                    "-j",
+                    str(multiprocessing.cpu_count()),
+                    "/etc/apparmor.d",
+                ]
                 target = f"{self._ctx.chroot_path}/sys/kernel/security/apparmor/features/"
-                with self._mount_bind(self._ctx.conf["snap"]["aa_features_path"], target):
-                    run_command(
-                        [
-                            "chroot",
-                            self._ctx.chroot_path,
-                            "apparmor_parser",
-                            "--skip-read-cache",
-                            "--write-cache",
-                            "--skip-kernel-load",
-                            "--verbose",
-                            "-j",
-                            str(multiprocessing.cpu_count()),
-                            "/etc/apparmor.d",
-                        ]
-                    )
+                if self._ctx.conf["snap"]["aa_features_path"]:
+                    with self._mount_bind(self._ctx.conf["snap"]["aa_features_path"], target):
+                        run_command(cmd)
+                else:
+                    run_command(cmd)
 
     def _files_install(self):
         """

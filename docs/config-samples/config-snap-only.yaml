@@ -1,0 +1,10 @@
+snap:
+  assertion_brand: canonical
+  assertion_model: aws-classic
+  snaps:
+    - name: hello
+      channel: latest/stable
+    - name: chimg
+      channel: latest/stable
+      classic: true
+      # revision: 123 # optional revision

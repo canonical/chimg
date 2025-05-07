@@ -73,3 +73,88 @@ def test__deb_install(mock_subprocess, chroot_dir, deb):
         assert mock_subprocess.call_count == 2
     else:
         assert mock_subprocess.call_count == 1
+
+
+@pytest.mark.parametrize(
+    "snap",
+    [
+        {"name": "hello", "channel": "latest/stable", "classic": False, "revision": None},
+        {"name": "chimg", "channel": "latest/edge", "classic": True, "revision": None},
+    ],
+)
+def test__snap_install(chroot_dir, snap):
+    """
+    test _snap_install() method
+    """
+    ctx = context.Context(conf_path=curdir / "fixtures/config1.yaml", chroot_path=chroot_dir)
+    cr = chroot.Chroot(ctx)
+    snap_info = cr._snap_install(snap["name"], snap["channel"], snap["classic"], snap["revision"])
+
+    assert pathlib.Path(f"{chroot_dir}/var/lib/snapd/seed/snaps/{snap_info.filename}").exists()
+    assert snap_info.info["name"] == snap["name"]
+    if snap["classic"] is True:
+        assert snap_info.info["notes"]["confinement"] == "classic"
+
+
+@pytest.mark.parametrize(
+    "snap_infos,expected_call_count",
+    [
+        # not base given so it expects "core"
+        ({"hello": chroot.SnapInfo(name="hello", channel="", classic=False, filename="hello_42.snap", info={})}, 1),
+        # core explicit given so don't expect it to be installed
+        ({"core": chroot.SnapInfo(name="core", channel="", classic=False, filename="core_423443.snap", info={})}, 0),
+        # core22 explicit given so don't expect it to be installed
+        (
+            {"core22": chroot.SnapInfo(name="core", channel="", classic=False, filename="core22_423443.snap", info={})},
+            0,
+        ),
+        # no base given for hello so expect "core" but core explicitly mentioned
+        (
+            {
+                "hello": chroot.SnapInfo(name="hello", channel="", classic=False, filename="hello_42.snap", info={}),
+                "core": chroot.SnapInfo(name="core", channel="", classic=False, filename="core_423443.snap", info={}),
+            },
+            0,
+        ),
+    ],
+)
+def test__snaps_base_install(chroot_dir, snap_infos, expected_call_count):
+    """
+    test _snaps_base_install() method
+    """
+    ctx = context.Context(conf_path=curdir / "fixtures/config1.yaml", chroot_path=chroot_dir)
+    cr = chroot.Chroot(ctx)
+    with patch.object(cr, "_snap_install") as mock:
+        cr._snaps_base_install(snap_infos)
+        assert mock.call_count == expected_call_count
+
+
+@pytest.mark.parametrize(
+    "snap_infos,expected_content",
+    [
+        # not base given so it expects "core"
+        (
+            {
+                "hello": chroot.SnapInfo(
+                    name="hello", channel="latest", classic=False, filename="hello_42.snap", info={}
+                )
+            },
+            """snaps:
+- channel: latest
+  classic: false
+  file: hello_42.snap
+  name: hello
+""",
+        ),
+    ],
+)
+def test__snaps_create_seed_yaml(chroot_dir, snap_infos, expected_content):
+    """
+    Test _snaps_create_seed_yaml()
+    """
+    ctx = context.Context(conf_path=curdir / "fixtures/config1.yaml", chroot_path=chroot_dir)
+    cr = chroot.Chroot(ctx)
+    cr._snaps_create_seed_yaml(snap_infos)
+    with open(f"{chroot_dir}/var/lib/snapd/seed/seed.yaml", "r") as f:
+        content = f.read()
+        assert content == expected_content

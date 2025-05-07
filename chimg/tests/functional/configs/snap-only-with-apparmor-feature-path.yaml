@@ -1,0 +1,8 @@
+---
+snap:
+  assertion_brand: canonical
+  assertion_model: aws-classic
+  aa_features_path: apparmor-features-paths/6.14/
+  snaps:
+    - name: hello
+      channel: latest/stable
