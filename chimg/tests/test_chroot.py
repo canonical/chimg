@@ -73,3 +73,24 @@ def test__deb_install(mock_subprocess, chroot_dir, deb):
         assert mock_subprocess.call_count == 2
     else:
         assert mock_subprocess.call_count == 1
+
+
+@pytest.mark.parametrize(
+    "snap",
+    [
+        {"name": "hello", "channel": "latest/stable", "classic": False, "revision": None},
+        {"name": "chimg", "channel": "latest/edge", "classic": True, "revision": None},
+    ],
+)
+def test__snap_install(chroot_dir, snap):
+    """
+    test _snap_install() method
+    """
+    ctx = context.Context(conf_path=curdir / "fixtures/config1.yaml", chroot_path=chroot_dir)
+    cr = chroot.Chroot(ctx)
+    snap_info = cr._snap_install(snap["name"], snap["channel"], snap["classic"], snap["revision"])
+
+    assert pathlib.Path(f"{chroot_dir}/var/lib/snapd/seed/snaps/{snap_info.filename}").exists()
+    assert snap_info.info["name"] == snap["name"]
+    if snap["classic"] is True:
+        assert snap_info.info["notes"]["confinement"] == "classic"
