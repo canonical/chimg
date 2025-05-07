@@ -40,6 +40,21 @@ with:
 
    sudo chimg --log-console chrootfs config.yaml /path/to/chroot/
 
+Install snap packages in a given chroot directory
+---------------------------------------------------
+
+The following `config.yaml` will install some snap packages:
+
+.. literalinclude:: ../config-samples/config-snap-only.yaml
+   :language: yaml
+
+Apply those changes to a given chroot directory (in this case `/path/to/chroot/`)
+with:
+
+.. code-block:: shell
+
+   sudo chimg --log-console chrootfs config.yaml /path/to/chroot/
+
 Integration with livecd-rootfs
 ------------------------------
 
