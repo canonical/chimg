@@ -137,7 +137,11 @@ class Chroot:
             assertion_file = assertion_files[0]
             run_command(["mv", assertion_file, f"{self._ctx.chroot_path}/var/lib/snapd/seed/assertions"])
             # move downloaded snap files (there should really be only a single one!)
-            snap_file = glob.glob(f"{tmpdir}/*.snap")[0]
+            snap_files = glob.glob(f"{tmpdir}/*.snap")
+            if len(snap_files) != 1:
+                # TODO: use a chimg specific exception here
+                raise RuntimeError(f"Multiple .snap files available for snap {name}")
+            snap_file = snap_files[0]
             run_command(["mv", snap_file, f"{self._ctx.chroot_path}/var/lib/snapd/seed/snaps"])
 
             # add snap to seed.yaml
