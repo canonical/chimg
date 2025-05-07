@@ -82,6 +82,12 @@ def _check_snap_preseeded(snap_name: str, chroot_path: pathlib.Path):
             ],
         ],
         [
+            "configs/snap-only-with-apparmor-feature-path.yaml",
+            [
+                (partial(_check_snap_preseeded, "hello")),
+            ],
+        ],
+        [
             "configs/ppas.yaml",
             [
                 (partial(_check_file_exists, pathlib.Path("etc/apt/sources.list.d/deadsnakes.sources"))),
