@@ -1,10 +1,11 @@
 #  SPDX-FileCopyrightText: 2024 Thomas Bechtold <thomasbechtold@jpberlin.de>
 #  SPDX-License-Identifier: GPL-3.0-or-later
 
+from dataclasses import dataclass
 import multiprocessing
 import textwrap
 from pathlib import Path
-from typing import List, Optional, Dict, Tuple
+from typing import List, Optional, Dict, Tuple, Any
 import logging
 from contextlib import contextmanager, ExitStack
 import urllib.request
@@ -17,6 +18,13 @@ from chimg.common import run_command
 from chimg.context import Context
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class SnapInfo:
+    name: str
+    filename: str
+    info: Dict[str, Any]
 
 
 class Chroot:
@@ -126,7 +134,7 @@ class Chroot:
         info_yaml = yaml.safe_load(info)
         return info_yaml
 
-    def _snap_install(self, name: str, channel: str, classic: bool = False, revision: Optional[str] = None):
+    def _snap_install(self, name: str, channel: str, classic: bool = False, revision: Optional[str] = None) -> SnapInfo:
         """
         Install a single snap
         Use _snaps_install() to install all configured snaps
@@ -153,10 +161,12 @@ class Chroot:
                 # TODO: use a chimg specific exception here
                 raise RuntimeError(f"Multiple .snap files available for snap {name}")
             snap_file = snap_files[0]
+            snap_info_yaml = self._snap_info(snap_file)
             run_command(["mv", snap_file, f"{self._ctx.chroot_path}/var/lib/snapd/seed/snaps"])
 
             # add snap to seed.yaml
             self._snap_add_to_seed_yaml(name, channel, os.path.basename(snap_file), classic)
+            return SnapInfo(name=name, filename=os.path.basename(snap_file), info=snap_info_yaml)
 
     def _snap_add_to_seed_yaml(self, name: str, channel: str, snap_file: str, classic: bool):
         """
