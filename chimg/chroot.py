@@ -90,7 +90,7 @@ class Chroot:
             if fname:
                 os.remove(fname)
 
-    def _snaps_base_install(self, snap_infos: Dict[str, SnapInfo]) -> None:
+    def _snaps_base_install(self, snap_infos: Dict[str, SnapInfo]) -> Dict[str, SnapInfo]:
         """
         Install the required core/coreXX snaps for the given snaps
         """
@@ -112,7 +112,8 @@ class Chroot:
             required_cores.add(core_name)
 
         for core in required_cores:
-            self._snap_install(name=core, channel="stable")
+            snap_infos[core] = self._snap_install(name=core, channel="stable")
+        return snap_infos
 
     def _snaps_install(self):
         """
@@ -129,11 +130,11 @@ class Chroot:
             )
 
         # install required cores
-        self._snaps_base_install(snap_infos)
+        snap_infos = self._snaps_base_install(snap_infos)
 
         # install snapd only if not already explicitly installed
         if "snapd" not in snap_infos.keys():
-            self._snap_install("snapd", "stable")
+            snap_infos["snapd"] = self._snap_install("snapd", "stable")
 
         # write seed.yaml
         self._snaps_create_seed_yaml(snap_infos)
