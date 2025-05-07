@@ -286,22 +286,24 @@ class Chroot:
             )
             # mount the apparmor features into the chroot to make snap preseeding work
             if self._ctx.conf["snap"]:
+                cmd = [
+                    "chroot",
+                    self._ctx.chroot_path,
+                    "apparmor_parser",
+                    "--skip-read-cache",
+                    "--write-cache",
+                    "--skip-kernel-load",
+                    "--verbose",
+                    "-j",
+                    str(multiprocessing.cpu_count()),
+                    "/etc/apparmor.d",
+                ]
                 target = f"{self._ctx.chroot_path}/sys/kernel/security/apparmor/features/"
-                with self._mount_bind(self._ctx.conf["snap"]["aa_features_path"], target):
-                    run_command(
-                        [
-                            "chroot",
-                            self._ctx.chroot_path,
-                            "apparmor_parser",
-                            "--skip-read-cache",
-                            "--write-cache",
-                            "--skip-kernel-load",
-                            "--verbose",
-                            "-j",
-                            str(multiprocessing.cpu_count()),
-                            "/etc/apparmor.d",
-                        ]
-                    )
+                if self._ctx.conf["snap"]["aa_features_path"]:
+                    with self._mount_bind(self._ctx.conf["snap"]["aa_features_path"], target):
+                        run_command(cmd)
+                else:
+                    run_command(cmd)
 
     def _files_install(self):
         """
