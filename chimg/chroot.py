@@ -9,6 +9,7 @@ from typing import List, Optional, Dict, Tuple, Any
 import logging
 from contextlib import contextmanager, ExitStack
 import urllib.request
+import re
 import tempfile
 import os
 import glob
@@ -87,6 +88,30 @@ class Chroot:
             if fname:
                 os.remove(fname)
 
+    def _snaps_base_install(self, snap_infos: Dict[str, SnapInfo]) -> None:
+        """
+        Install the required core/coreXX snaps for the given snaps
+        """
+        # install the required base snaps
+        required_cores = set()
+        for snap, si in snap_infos.items():
+            if snap == "snapd":
+                # snapd is self-contained, ignore base
+                continue
+            if re.match(r"^core(?:\d\d)?$", snap):
+                # core and core## are self-contained, ignore base
+                continue
+
+            # the core for the current snap
+            core_name = si.info.get("base", "core")
+            if core_name in snap_infos.keys():
+                # the core got already explicitly installed so don't add it here
+                continue
+            required_cores.add(core_name)
+
+        for core in required_cores:
+            self._snap_install(name=core, channel="stable")
+
     def _snaps_install(self):
         """
         Install all configured snaps
@@ -95,32 +120,18 @@ class Chroot:
             return
 
         logger.info("Installing snaps ...")
+        snap_infos: Dict[str, SnapInfo] = {}
         for snap in self._ctx.conf["snap"]["snaps"]:
-            self._snap_install(snap["name"], snap["channel"], snap["classic"], snap.get("revision"))
-            self._snap_base_install(snap["name"])
+            snap_infos[snap["name"]] = self._snap_install(
+                snap["name"], snap["channel"], snap["classic"], snap.get("revision")
+            )
+
+        # install required cores
+        self._snaps_base_install(snap_infos)
+
         # install snapd
         self._snap_install("snapd", "stable")
         logger.info("Snaps installed")
-
-    def _snap_base_install(self, name: str):
-        """
-        Install the base (coreXX) snap for the given snap
-        The expects that the snap was already installed via _snap_install()
-        """
-        # if there are zero or multiple snaps for the given name, something is wrong
-        snaps = glob.glob(f"{self._ctx.chroot_path}/var/lib/snapd/seed/snaps/{name}*.snap")
-        if len(snaps) != 1:
-            raise RuntimeError(f"Expected exactly one snap file for {name}, got {len(snaps)}")
-
-        snap_info_yaml = self._snap_info(snaps[0])
-        if "type" not in snap_info_yaml.keys() or snap_info_yaml["type"] != "base":
-            if "base" not in snap_info_yaml.keys():
-                raise RuntimeError(f"Snap {name} has no base set which means its 'core' which is no longer allowed")
-            # there is a core set, so install it if not already installed
-            # check if the core snap is already installed
-            snap_cores = glob.glob(f"{self._ctx.chroot_path}/var/lib/snapd/seed/snaps/{snap_info_yaml['base']}*.snap")
-            if len(snap_cores) == 0:
-                self._snap_install(snap_info_yaml["base"], "stable")
 
     def _snap_info(self, path: str):
         """

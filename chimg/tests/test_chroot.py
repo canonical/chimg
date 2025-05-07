@@ -94,3 +94,33 @@ def test__snap_install(chroot_dir, snap):
     assert snap_info.info["name"] == snap["name"]
     if snap["classic"] is True:
         assert snap_info.info["notes"]["confinement"] == "classic"
+
+
+@pytest.mark.parametrize(
+    "snap_infos,expected_call_count",
+    [
+        # not base given so it expects "core"
+        ({"hello": chroot.SnapInfo(name="hello", filename="hello_42.snap", info={})}, 1),
+        # core explicit given so don't expect it to be installed
+        ({"core": chroot.SnapInfo(name="core", filename="core_423443.snap", info={})}, 0),
+        # core22 explicit given so don't expect it to be installed
+        ({"core22": chroot.SnapInfo(name="core", filename="core22_423443.snap", info={})}, 0),
+        # no base given for hello so expect "core" but core explicitly mentioned
+        (
+            {
+                "hello": chroot.SnapInfo(name="hello", filename="hello_42.snap", info={}),
+                "core": chroot.SnapInfo(name="core", filename="core_423443.snap", info={}),
+            },
+            0,
+        ),
+    ],
+)
+def test__snaps_base_install(chroot_dir, snap_infos, expected_call_count):
+    """
+    test _snaps_base_install() method
+    """
+    ctx = context.Context(conf_path=curdir / "fixtures/config1.yaml", chroot_path=chroot_dir)
+    cr = chroot.Chroot(ctx)
+    with patch.object(cr, "_snap_install") as mock:
+        cr._snaps_base_install(snap_infos)
+        assert mock.call_count == expected_call_count
