@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 class SnapInfo:
     name: str
     filename: str
+    channel: str
+    classic: bool
     info: Dict[str, Any]
 
 
@@ -182,7 +184,9 @@ class Chroot:
 
             # add snap to seed.yaml
             self._snap_add_to_seed_yaml(name, channel, os.path.basename(snap_file), classic)
-            return SnapInfo(name=name, filename=os.path.basename(snap_file), info=snap_info_yaml)
+            return SnapInfo(
+                name=name, filename=os.path.basename(snap_file), channel=channel, classic=classic, info=snap_info_yaml
+            )
 
     def _snap_add_to_seed_yaml(self, name: str, channel: str, snap_file: str, classic: bool):
         """

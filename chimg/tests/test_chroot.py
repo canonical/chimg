@@ -100,16 +100,19 @@ def test__snap_install(chroot_dir, snap):
     "snap_infos,expected_call_count",
     [
         # not base given so it expects "core"
-        ({"hello": chroot.SnapInfo(name="hello", filename="hello_42.snap", info={})}, 1),
+        ({"hello": chroot.SnapInfo(name="hello", channel="", classic=False, filename="hello_42.snap", info={})}, 1),
         # core explicit given so don't expect it to be installed
-        ({"core": chroot.SnapInfo(name="core", filename="core_423443.snap", info={})}, 0),
+        ({"core": chroot.SnapInfo(name="core", channel="", classic=False, filename="core_423443.snap", info={})}, 0),
         # core22 explicit given so don't expect it to be installed
-        ({"core22": chroot.SnapInfo(name="core", filename="core22_423443.snap", info={})}, 0),
+        (
+            {"core22": chroot.SnapInfo(name="core", channel="", classic=False, filename="core22_423443.snap", info={})},
+            0,
+        ),
         # no base given for hello so expect "core" but core explicitly mentioned
         (
             {
-                "hello": chroot.SnapInfo(name="hello", filename="hello_42.snap", info={}),
-                "core": chroot.SnapInfo(name="core", filename="core_423443.snap", info={}),
+                "hello": chroot.SnapInfo(name="hello", channel="", classic=False, filename="hello_42.snap", info={}),
+                "core": chroot.SnapInfo(name="core", channel="", classic=False, filename="core_423443.snap", info={}),
             },
             0,
         ),
