@@ -127,3 +127,34 @@ def test__snaps_base_install(chroot_dir, snap_infos, expected_call_count):
     with patch.object(cr, "_snap_install") as mock:
         cr._snaps_base_install(snap_infos)
         assert mock.call_count == expected_call_count
+
+
+@pytest.mark.parametrize(
+    "snap_infos,expected_content",
+    [
+        # not base given so it expects "core"
+        (
+            {
+                "hello": chroot.SnapInfo(
+                    name="hello", channel="latest", classic=False, filename="hello_42.snap", info={}
+                )
+            },
+            """snaps:
+- channel: latest
+  classic: false
+  file: hello_42.snap
+  name: hello
+""",
+        ),
+    ],
+)
+def test__snaps_create_seed_yaml(chroot_dir, snap_infos, expected_content):
+    """
+    Test _snaps_create_seed_yaml()
+    """
+    ctx = context.Context(conf_path=curdir / "fixtures/config1.yaml", chroot_path=chroot_dir)
+    cr = chroot.Chroot(ctx)
+    cr._snaps_create_seed_yaml(snap_infos)
+    with open(f"{chroot_dir}/var/lib/snapd/seed/seed.yaml", "r") as f:
+        content = f.read()
+        assert content == expected_content

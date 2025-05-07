@@ -134,7 +134,31 @@ class Chroot:
         # install snapd only if not already explicitly installed
         if "snapd" not in snap_infos.keys():
             self._snap_install("snapd", "stable")
+
+        # write seed.yaml
+        self._snaps_create_seed_yaml(snap_infos)
         logger.info("Snaps installed")
+
+    def _snaps_create_seed_yaml(self, snap_infos: Dict[str, SnapInfo]):
+        """
+        Write out the seed.yaml file based on the given snap
+        """
+        Path(f"{self._ctx.chroot_path}/var/lib/snapd/seed/").mkdir(parents=True, exist_ok=True)
+        seed_yaml = f"{self._ctx.chroot_path}/var/lib/snapd/seed/seed.yaml"
+        snaps_yaml_list = []
+        for snap, si in snap_infos.items():
+            snap_yaml = {
+                "name": si.name,
+                "channel": si.channel,
+                "file": si.filename,
+                "classic": si.classic,
+            }
+            snaps_yaml_list.append(snap_yaml)
+        snaps_yaml = {"snaps": snaps_yaml_list}
+        # write the updated seed.yaml
+        with open(seed_yaml, "w") as f:
+            f.write(yaml.dump(snaps_yaml))
+        logger.info(f"seed.yaml file written to {seed_yaml}")
 
     def _snap_info(self, path: str):
         """
@@ -182,41 +206,9 @@ class Chroot:
             snap_info_yaml = self._snap_info(snap_file)
             run_command(["mv", snap_file, f"{self._ctx.chroot_path}/var/lib/snapd/seed/snaps"])
 
-            # add snap to seed.yaml
-            self._snap_add_to_seed_yaml(name, channel, os.path.basename(snap_file), classic)
             return SnapInfo(
                 name=name, filename=os.path.basename(snap_file), channel=channel, classic=classic, info=snap_info_yaml
             )
-
-    def _snap_add_to_seed_yaml(self, name: str, channel: str, snap_file: str, classic: bool):
-        """
-        add a snap to the seed.yaml file
-        """
-        seed_yaml = f"{self._ctx.chroot_path}/var/lib/snapd/seed/seed.yaml"
-        # if the file doesn't exist yet, create it with the basic yaml structure
-        if not os.path.exists(seed_yaml):
-            with open(seed_yaml, "w") as f:
-                f.write("snaps: []")
-        # read existing snaps listed in seed.yaml
-        with open(seed_yaml, "r") as f:
-            y = yaml.safe_load(f.read())
-
-        snaps_yaml = y["snaps"]
-        if name in [snap["name"] for snap in snaps_yaml]:
-            logger.warning(f"Snap {name} is already in seed.yaml. skipping")
-            return
-
-        snap_yaml = {
-            "name": name,
-            "channel": channel,
-            "file": snap_file,
-            "classic": classic,
-        }
-        snaps_yaml.append(snap_yaml)
-        y["snaps"] = snaps_yaml
-        # write the updated seed.yaml
-        with open(seed_yaml, "w+") as f:
-            f.write(yaml.dump(y))
 
     def _snap_assertion_install(self):
         """
