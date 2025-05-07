@@ -21,6 +21,10 @@ from chimg.context import Context
 logger = logging.getLogger(__name__)
 
 
+SNAPD_BASE_DIR = "/var/lib/snapd"
+SNAPD_SEED_DIR = f"{SNAPD_BASE_DIR}/seed"
+
+
 @dataclass
 class SnapInfo:
     name: str
@@ -144,8 +148,8 @@ class Chroot:
         """
         Write out the seed.yaml file based on the given snap
         """
-        Path(f"{self._ctx.chroot_path}/var/lib/snapd/seed/").mkdir(parents=True, exist_ok=True)
-        seed_yaml = f"{self._ctx.chroot_path}/var/lib/snapd/seed/seed.yaml"
+        Path(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}").mkdir(parents=True, exist_ok=True)
+        seed_yaml = f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/seed.yaml"
         snaps_yaml_list = []
         for snap, si in snap_infos.items():
             snap_yaml = {
@@ -179,8 +183,8 @@ class Chroot:
         Use _snaps_install() to install all configured snaps
         """
         # make sure the final target directories exist
-        Path(f"{self._ctx.chroot_path}/var/lib/snapd/seed/assertions").mkdir(parents=True, exist_ok=True)
-        Path(f"{self._ctx.chroot_path}/var/lib/snapd/seed/snaps").mkdir(parents=True, exist_ok=True)
+        Path(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/assertions").mkdir(parents=True, exist_ok=True)
+        Path(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/snaps").mkdir(parents=True, exist_ok=True)
 
         arch, _ = run_command(["dpkg", "--print-architecture"])
         with tempfile.TemporaryDirectory(prefix="chimg_") as tmpdir:
@@ -197,7 +201,7 @@ class Chroot:
                 # TODO: use a chimg specific exception here
                 raise RuntimeError(f"Multiple .assert files available for snap {name}")
             assertion_file = assertion_files[0]
-            run_command(["mv", assertion_file, f"{self._ctx.chroot_path}/var/lib/snapd/seed/assertions"])
+            run_command(["mv", assertion_file, f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/assertions"])
             # move downloaded snap files (there should really be only a single one!)
             snap_files = glob.glob(f"{tmpdir}/*.snap")
             if len(snap_files) != 1:
@@ -205,7 +209,7 @@ class Chroot:
                 raise RuntimeError(f"Multiple .snap files available for snap {name}")
             snap_file = snap_files[0]
             snap_info_yaml = self._snap_info(snap_file)
-            run_command(["mv", snap_file, f"{self._ctx.chroot_path}/var/lib/snapd/seed/snaps"])
+            run_command(["mv", snap_file, f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/snaps"])
 
             return SnapInfo(
                 name=name, filename=os.path.basename(snap_file), channel=channel, classic=classic, info=snap_info_yaml
@@ -219,8 +223,8 @@ class Chroot:
             return
 
         logger.info("Installing snap assertions ...")
-        Path(f"{self._ctx.chroot_path}/var/lib/snapd/seed/assertions").mkdir(parents=True, exist_ok=True)
-        Path(f"{self._ctx.chroot_path}/var/lib/snapd/seed/snaps").mkdir(parents=True, exist_ok=True)
+        Path(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/assertions").mkdir(parents=True, exist_ok=True)
+        Path(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/snaps").mkdir(parents=True, exist_ok=True)
 
         # model assertion
         model_assertion, _ = run_command(
@@ -244,7 +248,7 @@ class Chroot:
             raise RuntimeError("Could not get account key from model assertion")
 
         # write model assertion
-        with open(f"{self._ctx.chroot_path}/var/lib/snapd/seed/assertions/model", "w") as f:
+        with open(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/assertions/model", "w") as f:
             f.write(model_assertion)
 
         # account key assertion
@@ -261,14 +265,14 @@ class Chroot:
             raise RuntimeError("Could not get account id from account key assertion")
 
         # write account key assertion
-        with open(f"{self._ctx.chroot_path}/var/lib/snapd/seed/assertions/account-key", "w") as f:
+        with open(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/assertions/account-key", "w") as f:
             f.write(account_key_assertion)
 
         # account assertion
         account_assertion, _ = run_command(["snap", "known", "--remote", "account", f"account-id={account_id}"])
 
         # write account assertion
-        with open(f"{self._ctx.chroot_path}/var/lib/snapd/seed/assertions/account", "w") as f:
+        with open(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/assertions/account", "w") as f:
             f.write(account_assertion)
 
         logger.info("Snap assertions installed")
@@ -277,7 +281,7 @@ class Chroot:
         """
         Do the preseeding
         """
-        seed_yaml_path = f"{self._ctx.chroot_path}/var/lib/snapd/seed/seed.yaml"
+        seed_yaml_path = f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/seed.yaml"
         if os.path.exists(seed_yaml_path):
             run_command(["snap", "debug", "validate-seed", seed_yaml_path])
             run_command(["/usr/lib/snapd/snap-preseed", "--reset", os.path.realpath(self._ctx.chroot_path)])
