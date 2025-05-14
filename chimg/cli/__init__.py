@@ -44,7 +44,43 @@ def _parser():
     p_chrootfs = p_sub.add_parser("chrootfs", help="Modify given chroot FS")
     p_chrootfs.add_argument("config", type=pathlib.Path, help="the path to the chimg config file")
     p_chrootfs.add_argument("rootfspath", type=pathlib.Path, help="the path to the rootfs directory to work with")
-    p_chrootfs.set_defaults(func=_chrootfs)
+    p_chrootfs.add_argument(
+        "--output-files-name",
+        type=pathlib.Path,
+        help=(
+            "The base name/path (filename without extension) for the output files. "
+            "Extensions will be added automatically. If not given, no output files will be created. "
+            "Otherwise, a `.manifest` and a `.filelist` file will be created."
+        ),
+    )
+    p_chrootfs.add_argument(
+        "--overwrite-output",
+        action="store_true",
+        help="Overwrite existing output files (if any). Has no effect if --output-files-name is not given.",
+    )
+    p_chrootfs.set_defaults(func=chrootfs_entry_point)
+
+    # customize-image
+    p_customize = p_sub.add_parser("customize-image", help="Customize image")
+    p_customize.add_argument("input_image_file", type=pathlib.Path, help="the path to the input image file")
+    p_customize.add_argument("output_image_path", type=pathlib.Path, help="the path to the output image file")
+    p_customize.add_argument("chimg_config_file", type=pathlib.Path, help="the path to the chimg config file")
+    p_customize.add_argument("--target-mountpoint", type=pathlib.Path, help="the path to the target mount point")
+    p_customize.add_argument("--overwrite-output", action="store_true", help="overwrite existing output file (if any)")
+    p_customize.set_defaults(func=customize_image_entry_point)
+
+    # example invocation:
+    """
+    chimg \
+        --log-level debug \
+        --log-console \
+        customize-image \
+        "oracle-jammy-minimal-20250316.img" \
+        "chimg-modified-oracle-jammy-minimal-20250316.img" \
+        "mount2" \
+        "add-cloud-init-daily-ppa.yaml" \
+        --overwrite
+    """
 
     return parser
 
