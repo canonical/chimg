@@ -1,4 +1,3 @@
-import datetime
 import os
 import subprocess
 import shutil
@@ -7,6 +6,7 @@ import logging
 from argparse import Namespace
 import sys
 import tempfile
+from datetime import datetime
 from chimg.chroot import chrootfs_entrypoint
 
 logger = logging.getLogger(__name__)
@@ -34,6 +34,7 @@ class ImageCustomizer:
         """
         self.input_image_file = Path(input_image_file)
         self.output_image_path = Path(output_image_path)
+        #self.target_mountpoint = Path(target_mountpoint) if target_mountpoint else Path(f"chimg-tmp-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
         self.target_mountpoint = Path(target_mountpoint) if target_mountpoint else Path(tempfile.mkdtemp(prefix="chimg-", suffix=datetime.now().strftime("%Y%m%d%H%M%S")))
         self.chimg_config_file = Path(chimg_config_file)
         self.overwrite_output = overwrite_output
@@ -186,6 +187,7 @@ class ImageCustomizer:
         logger.info("Done!")
 
     def main(self):
+
         self.setup()
 
         try:
