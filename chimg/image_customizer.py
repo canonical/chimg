@@ -7,7 +7,7 @@ import logging
 from argparse import Namespace
 import sys
 import tempfile
-from chimg.chroot import chrootfs_entry_point
+from chimg.chroot import chrootfs_entrypoint
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +18,9 @@ class ImageCustomizer:
         *,
         input_image_file: str | Path,
         output_image_path: str | Path,
-        target_mount_point: str | Path,
+        target_mountpoint: str | Path,
         chimg_config_file: str | Path,
-        overwrite: bool = False,
+        overwrite_output: bool = False,
     ):
         """
         Initialize the ImageCustomizer with the input image file, output image path, and target mount point."
@@ -28,15 +28,15 @@ class ImageCustomizer:
         Args:
             input_image_file (str | Path): The path to the input image file.
             output_image_path (str | Path): The path where the modified image will be saved.
-            target_mount_point (str | Path): The mount point for the image.
+            target_mountpoint (str | Path): The mount point for the image.
             chimg_config_file (str | Path): The path to the chimg config file.
-            overwrite (bool): Whether to overwrite existing output image files.
+            overwrite_output (bool): Whether to overwrite existing output image files.
         """
         self.input_image_file = Path(input_image_file)
         self.output_image_path = Path(output_image_path)
-        self.target_mount_point = Path(target_mount_point) if target_mount_point else Path(tempfile.mkdtemp(prefix="chimg-", suffix=datetime.now().strftime("%Y%m%d%H%M%S")))
+        self.target_mountpoint = Path(target_mountpoint) if target_mountpoint else Path(tempfile.mkdtemp(prefix="chimg-", suffix=datetime.now().strftime("%Y%m%d%H%M%S")))
         self.chimg_config_file = Path(chimg_config_file)
-        self.overwrite = overwrite
+        self.overwrite_output = overwrite_output
 
         self.modified_image_file = self.input_image_file.with_suffix(".modifying")
         self.output_files_name = self.output_image_path.with_suffix("")
@@ -44,16 +44,16 @@ class ImageCustomizer:
         self.resolv_conf_existed = False
 
         # Check if the output image file already exists
-        if os.path.exists(self.output_image_path) and not self.overwrite:
+        if os.path.exists(self.output_image_path) and not self.overwrite_output:
             raise FileExistsError(
-                f"Error: Output image file '{self.output_image_path}' already exists! Use overwrite=True to overwrite."
+                f"Error: Output image file '{self.output_image_path}' already exists! Use --overwrite-output=True to overwrite."
             )
 
     def _ensure_paths(self):
         # if the input image is just in the current directory, we dont need to create the directory
         if os.path.dirname(self.input_image_file) != "":
             os.makedirs(os.path.dirname(self.modified_image_file), exist_ok=True)
-        os.makedirs(self.target_mount_point, exist_ok=True)
+        os.makedirs(self.target_mountpoint, exist_ok=True)
 
     def _remove_existing_modified_image(self):
         if os.path.exists(self.modified_image_file):
@@ -99,15 +99,15 @@ class ImageCustomizer:
                 "-o",
                 f"loop,offset={offset}",  # noqa: E231
                 self.modified_image_file,
-                self.target_mount_point,
+                self.target_mountpoint,
             ]
         )
         if result.returncode != 0:
             raise RuntimeError("Error: Failed to mount the image.")
-        logger.info("Mounted successfully at %s", self.target_mount_point)
+        logger.info("Mounted successfully at %s", self.target_mountpoint)
 
     def _handle_resolv_conf(self):
-        resolv_path = os.path.join(self.target_mount_point, "etc", "resolv.conf")
+        resolv_path = os.path.join(self.target_mountpoint, "etc", "resolv.conf")
         backup_path = f"{resolv_path}.bak"
 
         # Check if file or symlink exists
@@ -127,7 +127,7 @@ class ImageCustomizer:
         subprocess.run(["sudo", "ls", "-l", resolv_path])
 
     def _restore_resolv_conf(self):
-        resolv_path = os.path.join(self.target_mount_point, "etc", "resolv.conf")
+        resolv_path = os.path.join(self.target_mountpoint, "etc", "resolv.conf")
         backup_path = f"{resolv_path}.bak"
 
         if self.resolv_conf_existed and os.path.exists(backup_path):
@@ -140,7 +140,7 @@ class ImageCustomizer:
 
     def _unmount_image(self):
         logger.info("Unmounting image...")
-        subprocess.run(["sudo", "umount", self.target_mount_point], check=True)
+        subprocess.run(["sudo", "umount", self.target_mountpoint], check=True)
         subprocess.run(["sleep", "1"])
 
     def _produce_final_image(self):
@@ -191,13 +191,13 @@ class ImageCustomizer:
         try:
             args = Namespace(
                 config=self.chimg_config_file,
-                rootfspath=self.target_mount_point,
+                rootfspath=self.target_mountpoint,
                 output_files_name=self.output_files_name,
                 generate_sbom=False,
-                overwrite=self.overwrite,
+                overwrite_output=self.overwrite_output,
             )
 
-            chrootfs_entry_point(args)
+            chrootfs_entrypoint(args)
             logger.info("Succesfully invoked chimg chrootfs with config file: %s", self.chimg_config_file)
 
         except Exception as e:
@@ -209,7 +209,7 @@ class ImageCustomizer:
         self.create_final_image()
 
 
-def customize_image_entry_point(args) -> None:
+def customize_image_entrypoint(args) -> None:
     """
     Customize image according to the given config
     """
@@ -224,11 +224,12 @@ def customize_image_entry_point(args) -> None:
     customizer = ImageCustomizer(
         input_image_file=args.input_image_file,
         output_image_path=args.output_image_path,
-        target_mount_point=args.target_mountpoint,
+        target_mountpoint=args.target_mountpoint,
         chimg_config_file=args.chimg_config_file,
-        overwrite=args.overwrite_output,
+        overwrite_output=args.overwrite_output,
     )
     customizer.main()
+
 
 
 # if __name__ == "__main__":
@@ -236,8 +237,8 @@ def customize_image_entry_point(args) -> None:
 #     customizer = ImageCustomizer(
 #         input_image_file="oracle-jammy-minimal-20250316.img",
 #         output_image_path="chimg-modified-oracle-jammy-minimal-20250316.img",
-#         target_mount_point="mount2",
+#         target_mountpoint="mount2",
 #         chimg_config_file="add-cloud-init-daily-ppa.yaml",
-#         overwrite=True,
+#         overwrite_output=True,
 #     )
 #     customizer.main()

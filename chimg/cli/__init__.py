@@ -10,27 +10,11 @@ import logging
 import argparse
 
 from chimg.context import Context
-from chimg.chroot import Chroot
+from chimg.chroot import Chroot, chrootfs_entrypoint
+from chimg.image_customizer import customize_image_entrypoint
 
 
 logger = logging.getLogger(__name__)
-
-
-def _chrootfs(args) -> None:
-    """
-    Modify given chroot FS according to the given config
-    """
-    if not os.path.exists(args.config):
-        logger.error(f"config file {args.config} does not exist")
-        sys.exit(1)
-
-    if not os.path.exists(args.rootfspath):
-        logger.error(f"rootfs path {args.rootfspath} does not exist")
-        sys.exit(1)
-
-    ctx = Context(args.config, args.rootfspath)
-    chroot = Chroot(ctx)
-    chroot.apply()
 
 
 def _parser():
@@ -58,7 +42,7 @@ def _parser():
         action="store_true",
         help="Overwrite existing output files (if any). Has no effect if --output-files-name is not given.",
     )
-    p_chrootfs.set_defaults(func=chrootfs_entry_point)
+    p_chrootfs.set_defaults(func=chrootfs_entrypoint)
 
     # customize-image
     p_customize = p_sub.add_parser("customize-image", help="Customize image")
@@ -67,7 +51,7 @@ def _parser():
     p_customize.add_argument("chimg_config_file", type=pathlib.Path, help="the path to the chimg config file")
     p_customize.add_argument("--target-mountpoint", type=pathlib.Path, help="the path to the target mount point")
     p_customize.add_argument("--overwrite-output", action="store_true", help="overwrite existing output file (if any)")
-    p_customize.set_defaults(func=customize_image_entry_point)
+    p_customize.set_defaults(func=customize_image_entrypoint)
 
     # example invocation:
     """
