@@ -83,6 +83,7 @@ class Config(BaseModel):
     """
 
     kernel: Optional[str] = Field(description="Optional kernel deb package name", default=None)
+    initrdless: bool = Field(description="Setup initrdless boot if a kernel gets installed", default=True)
     fs: Optional[ConfigFilesystem] = Field(description="Optional filesystem options", default=None)
     ppas: Optional[List[ConfigPPA]] = Field(description="Optional list of PPAs", default=[])
     debs: Optional[List[ConfigDebPackage]] = Field(description="Optional list of debs", default=[])
