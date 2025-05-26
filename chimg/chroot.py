@@ -408,6 +408,9 @@ class Chroot:
         self._grub_replace_root_with_label()
 
     def _kernel_boot_without_initramfs(self):
+        if not self._ctx.conf["initrdless"]:
+            return
+
         m, _ = run_command(["findmnt", "-n", "-o", "SOURCE", "--target", self._ctx.chroot_path])
         partuuid, _ = run_command(["blkid", "-s", "PARTUUID", "-o", "value", m])
         if partuuid:

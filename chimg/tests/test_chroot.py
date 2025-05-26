@@ -2,6 +2,7 @@
 #  SPDX-License-Identifier: GPL-3.0-or-later
 
 from unittest.mock import patch, ANY
+import os
 import pathlib
 import pytest
 
@@ -158,3 +159,27 @@ def test__snaps_create_seed_yaml(chroot_dir, snap_infos, expected_content):
     with open(f"{chroot_dir}/var/lib/snapd/seed/seed.yaml", "r") as f:
         content = f.read()
         assert content == expected_content
+
+
+@pytest.mark.parametrize(
+    "config,grub_force_partuuid_exist",
+    [
+        ("fixtures/config1.yaml", True),
+        ("fixtures/config2.yaml", False),
+    ],
+)
+@patch("chimg.common.subprocess.run")
+def test__kernel_boot_without_initramfs(mock_subprocess, chroot_dir, config, grub_force_partuuid_exist):
+    """
+    test _kernel_boot_without_initramfs()
+    """
+    mock_subprocess.return_value.returncode = 0
+    mock_subprocess.return_value.stdout = b"stdout"
+    mock_subprocess.return_value.stderr = b"stderr"
+
+    grub_conf_dir = f"{chroot_dir}/etc/default/grub.d/"
+    os.makedirs(grub_conf_dir, exist_ok=True)
+    ctx = context.Context(conf_path=curdir / config, chroot_path=chroot_dir)
+    cr = chroot.Chroot(ctx)
+    cr._kernel_boot_without_initramfs()
+    assert os.path.isfile(f"{grub_conf_dir}/40-force-partuuid.cfg") is grub_force_partuuid_exist
