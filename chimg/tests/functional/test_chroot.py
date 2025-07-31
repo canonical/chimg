@@ -40,7 +40,7 @@ def _check_deb_installed(deb_name: str, deb_hold: bool, chroot_path: pathlib.Pat
     assert (deb_name in res_mark.decode().strip()) is deb_hold
 
 
-def _check_snap_preseeded(snap_name: str, chroot_path: pathlib.Path):
+def _check_snap_preseeded(snap_name: str, channel: str, classic: bool, chroot_path: pathlib.Path):
     """
     check that a given snap package is preseeded
     """
@@ -53,8 +53,14 @@ def _check_snap_preseeded(snap_name: str, chroot_path: pathlib.Path):
     # entry in seed.yaml should exist
     with open(f"{chroot_path.as_posix()}/var/lib/snapd/seed/seed.yaml", "r") as f:
         y = yaml.safe_load(f.read())
-        existing_names = [snap["name"] for snap in y["snaps"]]
-    assert snap_name in existing_names
+        for snap in y["snaps"]:
+            if snap["name"] == snap_name:
+                assert snap["channel"] == channel
+                assert snap["classic"] == classic
+                return
+
+    # we should never reach this point
+    raise Exception(f"snap {snap_name} is not found in seed.yaml")
 
 
 @pytest.mark.parametrize(
@@ -84,7 +90,7 @@ def _check_snap_preseeded(snap_name: str, chroot_path: pathlib.Path):
                 "configs/snap-only.yaml",
             ],
             [
-                (partial(_check_snap_preseeded, "hello")),
+                (partial(_check_snap_preseeded, "hello", "latest/stable", False)),
             ],
         ],
         [
@@ -92,7 +98,7 @@ def _check_snap_preseeded(snap_name: str, chroot_path: pathlib.Path):
                 "configs/snap-only-with-apparmor-feature-path.yaml",
             ],
             [
-                (partial(_check_snap_preseeded, "hello")),
+                (partial(_check_snap_preseeded, "hello", "latest/stable", False)),
             ],
         ],
         [
