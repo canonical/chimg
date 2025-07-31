@@ -101,6 +101,30 @@ def _check_snap_preseeded(snap_name: str, channel: str, classic: bool, chroot_pa
                 (partial(_check_snap_preseeded, "hello", "latest/stable", False)),
             ],
         ],
+        # install with 1st config the hello snap from latest/stable, then with 2nd config from latest/edge
+        [
+            [
+                "configs/snaps-stable.yaml",
+                "configs/snaps-edge.yaml",
+            ],
+            [
+                (partial(_check_snap_preseeded, "hello", "latest/edge", False)),
+                (partial(_check_snap_preseeded, "chimg", "latest/stable", True)),
+                (partial(_check_snap_preseeded, "snapd", "latest/edge", False)),
+            ],
+        ],
+        # install with 1st config the hello snap from latest/edge, then with 2nd config from latest/stable
+        [
+            [
+                "configs/snaps-edge.yaml",
+                "configs/snaps-stable.yaml",
+            ],
+            [
+                (partial(_check_snap_preseeded, "hello", "latest/stable", False)),
+                (partial(_check_snap_preseeded, "chimg", "latest/stable", True)),
+                (partial(_check_snap_preseeded, "snapd", "latest/stable", False)),
+            ],
+        ],
         [
             [
                 "configs/ppas.yaml",

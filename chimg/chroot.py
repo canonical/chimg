@@ -147,8 +147,13 @@ class Chroot:
             return
 
         logger.info("Installing snaps ...")
-        snap_infos: Dict[str, SnapInfo] = {}
+        # start with the already installed (aka preseeded) snaps
+        snap_infos: Dict[str, SnapInfo] = self._snaps_already_installed()
+
         for snap in self._ctx.conf["snap"]["snaps"]:
+            # is the snap already installed but the current config does contain the snap, delete it and reinstall it
+            if snap["name"] in snap_infos:
+                self._snap_delete(snap_infos[snap["name"]])
             snap_infos[snap["name"]] = self._snap_install(
                 snap["name"], snap["channel"], snap["classic"], snap.get("revision")
             )
@@ -259,7 +264,14 @@ class Chroot:
         for snap in seed_yaml["snaps"]:
             # path to the .snap file
             p = Path(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/snaps/{snap['file']}")
-            snap_infos[snap["name"]] = self._snap_info(p.as_posix())
+            snap_info_yaml = self._snap_info(p.as_posix())
+            snap_infos[snap["name"]] = SnapInfo(
+                name=snap["name"],
+                filename=os.path.basename(snap["file"]),
+                channel=snap["channel"],
+                classic=snap["classic"],
+                info=snap_info_yaml,
+            )
 
         return snap_infos
 
