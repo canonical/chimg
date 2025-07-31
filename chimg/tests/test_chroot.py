@@ -5,6 +5,7 @@ from unittest.mock import patch, ANY
 import os
 import pathlib
 import pytest
+import yaml
 
 from chimg import chroot
 from chimg import context
@@ -183,3 +184,46 @@ def test__kernel_boot_without_initramfs(mock_subprocess, chroot_dir, config, gru
     cr = chroot.Chroot(ctx)
     cr._kernel_boot_without_initramfs()
     assert os.path.isfile(f"{grub_conf_dir}/40-force-partuuid.cfg") is grub_force_partuuid_exist
+
+
+def test__snaps_already_installed_no_seed_yaml(chroot_dir):
+    """Test _snaps_already_installed() when no seed.yaml file exists"""
+
+    ctx = context.Context(conf_path=curdir / "fixtures/config1.yaml", chroot_path=chroot_dir)
+    cr = chroot.Chroot(ctx)
+
+    result = cr._snaps_already_installed()
+    assert result == {}
+
+
+def test__snaps_already_installed_with_seed_yaml(chroot_dir):
+    """Test _snaps_already_installed() with snap files and seed.yaml"""
+    # Mock seed.yaml content
+    mock_seed_yaml = yaml.safe_load(
+        """
+snaps:
+  - name: core20
+    file: core20_1.snap
+    channel: latest/edge
+    classic: false
+"""
+    )
+
+    # Mock _snap_info method
+    mock_snap_info = chroot.SnapInfo(
+        name="core20", filename="core20_1.snap", channel="latest/stable", classic=False, info={}
+    )
+
+    ctx = context.Context(conf_path=curdir / "fixtures/config1.yaml", chroot_path=chroot_dir)
+    cr = chroot.Chroot(ctx)
+
+    with patch.object(cr, "_snaps_read_seed_yaml", return_value=mock_seed_yaml):
+        with patch.object(cr, "_snap_info", return_value=mock_snap_info):
+            result = cr._snaps_already_installed()
+
+    assert len(result) == 1
+    assert "core20" in result
+    assert result["core20"].name == "core20"
+    assert result["core20"].filename == "core20_1.snap"
+    assert result["core20"].channel == "latest/edge"
+    assert result["core20"].classic is False

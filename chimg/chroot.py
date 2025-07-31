@@ -144,6 +144,16 @@ class Chroot:
         self._snaps_create_seed_yaml(snap_infos)
         logger.info("Snaps installed")
 
+    def _snaps_read_seed_yaml(self) -> Optional[Any]:
+        """
+        Read the seed.yaml file
+        """
+        seed_yaml_path = f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/seed.yaml"
+        if os.path.exists(seed_yaml_path):
+            with open(seed_yaml_path, "r") as f:
+                return yaml.safe_load(f)
+        return None
+
     def _snaps_create_seed_yaml(self, snap_infos: Dict[str, SnapInfo]):
         """
         Write out the seed.yaml file based on the given snap
@@ -214,6 +224,24 @@ class Chroot:
             return SnapInfo(
                 name=name, filename=os.path.basename(snap_file), channel=channel, classic=classic, info=snap_info_yaml
             )
+
+    def _snaps_already_installed(self) -> Dict[str, SnapInfo]:
+        """
+        Collect information about already preseeded snaps from /var/lib/snapd/seed/seed.yaml
+        """
+        snap_infos: Dict[str, SnapInfo] = {}
+
+        seed_yaml = self._snaps_read_seed_yaml()
+        if not seed_yaml:
+            logger.info("no seed.yaml file exist so no snaps already preseeded.")
+            return snap_infos
+
+        for snap in seed_yaml["snaps"]:
+            # path to the .snap file
+            p = Path(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/snaps/{snap['file']}")
+            snap_infos[snap["name"]] = self._snap_info(p.as_posix())
+
+        return snap_infos
 
     def _snap_assertion_install(self):
         """
