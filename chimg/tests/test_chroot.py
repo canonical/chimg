@@ -98,6 +98,24 @@ def test__snap_install(chroot_dir, snap):
         assert snap_info.info["notes"]["confinement"] == "classic"
 
 
+def test__snap_delete(chroot_dir):
+    """
+    test _snap_delete() method
+    """
+    ctx = context.Context(conf_path=curdir / "fixtures/config1.yaml", chroot_path=chroot_dir)
+    cr = chroot.Chroot(ctx)
+    # install the snap first
+    snap_info = cr._snap_install("chimg", "latest/stable", True, None)
+    # check that the .snap and .assert file exist
+    assert pathlib.Path(f"{chroot_dir}/var/lib/snapd/seed/snaps/{snap_info.filename}").exists()
+    assertion_name = snap_info.filename.replace(".snap", ".assert")
+    assert pathlib.Path(f"{chroot_dir}/var/lib/snapd/seed/assertions/{assertion_name}").exists()
+    # delete the snap
+    cr._snap_delete(snap_info)
+    assert not pathlib.Path(f"{chroot_dir}/var/lib/snapd/seed/snaps/{snap_info.filename}").exists()
+    assert not pathlib.Path(f"{chroot_dir}/var/lib/snapd/seed/assertions/{assertion_name}").exists()
+
+
 @pytest.mark.parametrize(
     "snap_infos,expected_call_count",
     [

@@ -119,6 +119,26 @@ class Chroot:
             snap_infos[core] = self._snap_install(name=core, channel="stable")
         return snap_infos
 
+    def _snap_delete(self, snap: SnapInfo):
+        """
+        Delete the given snap from the filesystem
+        """
+        logger.info(f"deleting snap {snap.name} from filesystem ...")
+        assertions_dir = f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/assertions"
+        assertion_files = glob.glob(f"{assertions_dir}/{snap.name}_*.assert")
+        if len(assertion_files) != 1:
+            # TODO: use a chimg specific exception here
+            raise RuntimeError(f"Multiple .assert files available for snap {snap.name} in {assertions_dir}")
+        assertion_file = assertion_files[0]
+
+        snaps_dir = f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/snaps"
+        snap_files = glob.glob(f"{snaps_dir}/{snap.name}_*.snap")
+        if len(snap_files) != 1:
+            # TODO: use a chimg specific exception here
+            raise RuntimeError(f"Multiple .snap files available for snap {snap.name} in {snaps_dir}")
+        snap_file = snap_files[0]
+        run_command(["rm", "-f", assertion_file, snap_file])
+
     def _snaps_install(self):
         """
         Install all configured snaps
