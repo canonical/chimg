@@ -40,7 +40,7 @@ def _check_deb_installed(deb_name: str, deb_hold: bool, chroot_path: pathlib.Pat
     assert (deb_name in res_mark.decode().strip()) is deb_hold
 
 
-def _check_snap_preseeded(snap_name: str, chroot_path: pathlib.Path):
+def _check_snap_preseeded(snap_name: str, channel: str, classic: bool, chroot_path: pathlib.Path):
     """
     check that a given snap package is preseeded
     """
@@ -53,22 +53,32 @@ def _check_snap_preseeded(snap_name: str, chroot_path: pathlib.Path):
     # entry in seed.yaml should exist
     with open(f"{chroot_path.as_posix()}/var/lib/snapd/seed/seed.yaml", "r") as f:
         y = yaml.safe_load(f.read())
-        existing_names = [snap["name"] for snap in y["snaps"]]
-    assert snap_name in existing_names
+        for snap in y["snaps"]:
+            if snap["name"] == snap_name:
+                assert snap["channel"] == channel
+                assert snap["classic"] == classic
+                return
+
+    # we should never reach this point
+    raise Exception(f"snap {snap_name} is not found in seed.yaml")
 
 
 @pytest.mark.parametrize(
-    "config_path,checks",
+    "config_paths,checks",
     [
         [
-            "configs/kernel-only.yaml",
+            [
+                "configs/kernel-only.yaml",
+            ],
             [
                 (partial(_check_file_exists, pathlib.Path("boot/vmlinuz"))),
                 (partial(_check_deb_installed, "linux-aws", False)),
             ],
         ],
         [
-            "configs/deb-only.yaml",
+            [
+                "configs/deb-only.yaml",
+            ],
             [
                 (partial(_check_deb_installed, "chrony", False)),
                 (partial(_check_deb_installed, "fuse3", True)),
@@ -76,19 +86,49 @@ def _check_snap_preseeded(snap_name: str, chroot_path: pathlib.Path):
             ],
         ],
         [
-            "configs/snap-only.yaml",
             [
-                (partial(_check_snap_preseeded, "hello")),
+                "configs/snap-only.yaml",
+            ],
+            [
+                (partial(_check_snap_preseeded, "hello", "latest/stable", False)),
             ],
         ],
         [
-            "configs/snap-only-with-apparmor-feature-path.yaml",
             [
-                (partial(_check_snap_preseeded, "hello")),
+                "configs/snap-only-with-apparmor-feature-path.yaml",
+            ],
+            [
+                (partial(_check_snap_preseeded, "hello", "latest/stable", False)),
+            ],
+        ],
+        # install with 1st config the hello snap from latest/stable, then with 2nd config from latest/edge
+        [
+            [
+                "configs/snaps-stable.yaml",
+                "configs/snaps-edge.yaml",
+            ],
+            [
+                (partial(_check_snap_preseeded, "hello", "latest/edge", False)),
+                (partial(_check_snap_preseeded, "chimg", "latest/stable", True)),
+                (partial(_check_snap_preseeded, "snapd", "latest/edge", False)),
+            ],
+        ],
+        # install with 1st config the hello snap from latest/edge, then with 2nd config from latest/stable
+        [
+            [
+                "configs/snaps-edge.yaml",
+                "configs/snaps-stable.yaml",
+            ],
+            [
+                (partial(_check_snap_preseeded, "hello", "latest/stable", False)),
+                (partial(_check_snap_preseeded, "chimg", "latest/stable", True)),
+                (partial(_check_snap_preseeded, "snapd", "latest/stable", False)),
             ],
         ],
         [
-            "configs/ppas.yaml",
+            [
+                "configs/ppas.yaml",
+            ],
             [
                 (partial(_check_file_exists, pathlib.Path("etc/apt/sources.list.d/deadsnakes.sources"))),
                 (partial(_check_file_exists, pathlib.Path("etc/apt/trusted.gpg.d/deadsnakes.gpg"))),
@@ -99,13 +139,15 @@ def _check_snap_preseeded(snap_name: str, chroot_path: pathlib.Path):
     ],
 )
 @pytest.mark.realchroot
-def test_config(chroot_mmdebstrap_dir, config_path, checks):
+def test_config(chroot_mmdebstrap_dir, config_paths, checks):
     """
     Test different configuration examples from the functional/configs directory
     """
-    ctx = context.Context(conf_path=curdir / config_path, chroot_path=chroot_mmdebstrap_dir)
-    cr = chroot.Chroot(ctx)
-    cr.apply()
+    for config_path in config_paths:
+        ctx = context.Context(conf_path=curdir / config_path, chroot_path=chroot_mmdebstrap_dir)
+        cr = chroot.Chroot(ctx)
+        cr.apply()
+
     # do checks
     for check in checks:
         check(chroot_mmdebstrap_dir)

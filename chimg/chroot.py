@@ -119,6 +119,26 @@ class Chroot:
             snap_infos[core] = self._snap_install(name=core, channel="stable")
         return snap_infos
 
+    def _snap_delete(self, snap: SnapInfo):
+        """
+        Delete the given snap from the filesystem
+        """
+        logger.info(f"deleting snap {snap.name} from filesystem ...")
+        assertions_dir = f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/assertions"
+        assertion_files = glob.glob(f"{assertions_dir}/{snap.name}_*.assert")
+        if len(assertion_files) != 1:
+            # TODO: use a chimg specific exception here
+            raise RuntimeError(f"Multiple .assert files available for snap {snap.name} in {assertions_dir}")
+        assertion_file = assertion_files[0]
+
+        snaps_dir = f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/snaps"
+        snap_files = glob.glob(f"{snaps_dir}/{snap.name}_*.snap")
+        if len(snap_files) != 1:
+            # TODO: use a chimg specific exception here
+            raise RuntimeError(f"Multiple .snap files available for snap {snap.name} in {snaps_dir}")
+        snap_file = snap_files[0]
+        run_command(["rm", "-f", assertion_file, snap_file])
+
     def _snaps_install(self):
         """
         Install all configured snaps
@@ -127,8 +147,13 @@ class Chroot:
             return
 
         logger.info("Installing snaps ...")
-        snap_infos: Dict[str, SnapInfo] = {}
+        # start with the already installed (aka preseeded) snaps
+        snap_infos: Dict[str, SnapInfo] = self._snaps_already_installed()
+
         for snap in self._ctx.conf["snap"]["snaps"]:
+            # is the snap already installed but the current config does contain the snap, delete it and reinstall it
+            if snap["name"] in snap_infos:
+                self._snap_delete(snap_infos[snap["name"]])
             snap_infos[snap["name"]] = self._snap_install(
                 snap["name"], snap["channel"], snap["classic"], snap.get("revision")
             )
@@ -143,6 +168,16 @@ class Chroot:
         # write seed.yaml
         self._snaps_create_seed_yaml(snap_infos)
         logger.info("Snaps installed")
+
+    def _snaps_read_seed_yaml(self) -> Optional[Any]:
+        """
+        Read the seed.yaml file
+        """
+        seed_yaml_path = f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/seed.yaml"
+        if os.path.exists(seed_yaml_path):
+            with open(seed_yaml_path, "r") as f:
+                return yaml.safe_load(f)
+        return None
 
     def _snaps_create_seed_yaml(self, snap_infos: Dict[str, SnapInfo]):
         """
@@ -214,6 +249,31 @@ class Chroot:
             return SnapInfo(
                 name=name, filename=os.path.basename(snap_file), channel=channel, classic=classic, info=snap_info_yaml
             )
+
+    def _snaps_already_installed(self) -> Dict[str, SnapInfo]:
+        """
+        Collect information about already preseeded snaps from /var/lib/snapd/seed/seed.yaml
+        """
+        snap_infos: Dict[str, SnapInfo] = {}
+
+        seed_yaml = self._snaps_read_seed_yaml()
+        if not seed_yaml:
+            logger.info("no seed.yaml file exist so no snaps already preseeded.")
+            return snap_infos
+
+        for snap in seed_yaml["snaps"]:
+            # path to the .snap file
+            p = Path(f"{self._ctx.chroot_path}/{SNAPD_SEED_DIR}/snaps/{snap['file']}")
+            snap_info_yaml = self._snap_info(p.as_posix())
+            snap_infos[snap["name"]] = SnapInfo(
+                name=snap["name"],
+                filename=os.path.basename(snap["file"]),
+                channel=snap["channel"],
+                classic=snap["classic"],
+                info=snap_info_yaml,
+            )
+
+        return snap_infos
 
     def _snap_assertion_install(self):
         """
