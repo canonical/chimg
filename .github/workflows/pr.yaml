@@ -20,7 +20,7 @@ jobs:
       - name: Install tox
         run: |
           sudo apt install -y tox
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Run tox
         # Run tox using the version of Python in `PATH`
         run: tox
@@ -30,12 +30,12 @@ jobs:
       - name: Install tox and mmdebstrap
         run: |
           sudo apt install -y mmdebstrap tox
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Run tox
         # Run functional tests through tox
         run: sudo tox -efunctional
   snap:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - uses: snapcore/action-build@v1
