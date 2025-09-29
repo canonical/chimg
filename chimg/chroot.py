@@ -794,3 +794,20 @@ Pin-Priority: {repo_pin_priority}
             logger.info("mount points setup done")
             yield
         logger.info("mount points cleanup done")
+
+
+def chrootfs_entrypoint(args) -> None:
+    """
+    Modify given chroot FS according to the given config
+    """
+    if not os.path.exists(args.config):
+        logger.error(f"config file {args.config} does not exist")
+        sys.exit(1)
+
+    if not os.path.exists(args.rootfspath):
+        logger.error(f"rootfs path {args.rootfspath} does not exist")
+        sys.exit(1)
+
+    ctx = Context(args.config, args.rootfspath)
+    chroot = Chroot(ctx)
+    chroot.apply()
