@@ -23,6 +23,7 @@ keywords = ["Ubuntu", "chroot", "image"]
 python = "^3.8"
 pyyaml = "*"
 pydantic = "^2.7.4"
+packaging = ">=24.2"
 
 [tool.poetry.group.test]
 optional = true
