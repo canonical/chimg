@@ -21,7 +21,7 @@ keywords = ["Ubuntu", "chroot", "image"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
-pyyaml = "*"
+pyyaml = ">=6.0.3"
 pydantic = "^2.7.4"
 packaging = ">=24.2"
 
