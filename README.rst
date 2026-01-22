@@ -6,7 +6,7 @@ This tool can be used to modify Ubuntu based chroot directories.
 Report issues
 =============
 
-Please use https://github.com/toabctl/chimg/issues to report problems or ask
+Please use [issues](https://github.com/canonical/chimg/issues) to report problems or ask
 questions.
 
 License
