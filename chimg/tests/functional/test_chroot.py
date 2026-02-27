@@ -10,6 +10,8 @@ import subprocess
 from functools import partial
 from chimg import chroot
 from chimg import context
+import shutil
+from typing import cast
 
 
 curdir = pathlib.Path(__file__).parent.resolve()
@@ -33,10 +35,20 @@ def _check_deb_installed(deb_name: str, deb_hold: bool, chroot_path: pathlib.Pat
     """
     check that a given deb package is installed
     """
-    res = subprocess.run(["/usr/sbin/chroot", chroot_path.as_posix(), "dpkg-query", "-W", deb_name])
+    # Resolve chroot binary the same way as the application does (no env var here)
+    chroot_bin = shutil.which("chroot")
+    if not chroot_bin:
+        for p in ("/usr/sbin/chroot", "/usr/bin/chroot", "/bin/chroot"):
+            if os.path.exists(p) and os.access(p, os.X_OK):
+                chroot_bin = p
+                break
+    if not chroot_bin:
+        pytest.skip("no chroot binary found on host")
+    chroot_bin = cast(str, chroot_bin)
+    res = subprocess.run([chroot_bin, chroot_path.as_posix(), "dpkg-query", "-W", deb_name])
     assert res.returncode == 0, f"deb package {deb_name} is not installed"
     # check the hold status
-    res_mark = subprocess.check_output(["/usr/sbin/chroot", chroot_path.as_posix(), "apt-mark", "showhold", deb_name])
+    res_mark = subprocess.check_output([chroot_bin, chroot_path.as_posix(), "apt-mark", "showhold", deb_name])
     assert (deb_name in res_mark.decode().strip()) is deb_hold
 
 

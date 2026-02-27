@@ -14,6 +14,7 @@ import tempfile
 import os
 import glob
 import yaml
+import shutil
 
 from chimg.common import run_command
 from chimg.context import Context
@@ -37,6 +38,16 @@ class SnapInfo:
 class Chroot:
     def __init__(self, ctx: Context):
         self._ctx: Context = ctx
+        # determine chroot binary: use shutil.which and fall back to common locations
+        chroot_bin = shutil.which("chroot")
+        if not chroot_bin:
+            for p in ("/usr/sbin/chroot", "/usr/bin/chroot", "/bin/chroot"):
+                if os.path.exists(p) and os.access(p, os.X_OK):
+                    chroot_bin = p
+                    break
+        if not chroot_bin:
+            raise RuntimeError("chroot binary not found on host.")
+        self._chroot_bin = chroot_bin
 
     def apply(self):
         """
@@ -86,7 +97,7 @@ class Chroot:
             f.seek(0)
             os.chmod(f.name, 0o700)
             f.close()
-            return run_command(["/usr/sbin/chroot", self._ctx.chroot_path, f"/{os.path.basename(f.name)}"])
+            return run_command([self._chroot_bin, self._ctx.chroot_path, f"/{os.path.basename(f.name)}"])
         except Exception:
             logger.exception(f"Error running command: {cmd}")
             raise
@@ -409,7 +420,7 @@ class Chroot:
         """
         run_command(
             [
-                "/usr/sbin/chroot",
+                self._chroot_bin,
                 self._ctx.chroot_path,
                 "apt-get",
                 "install",
@@ -421,7 +432,7 @@ class Chroot:
         )
         if deb.get("hold", False):
             run_command(
-                ["/usr/sbin/chroot", self._ctx.chroot_path, "apt-mark", "hold", deb["name"]],
+                [self._chroot_bin, self._ctx.chroot_path, "apt-mark", "hold", deb["name"]],
                 env={"DEBIAN_FRONTEND": "noninteractive"},
             )
 
@@ -430,7 +441,7 @@ class Chroot:
         Call apt-get update in the chroot
         """
         run_command(
-            ["/usr/sbin/chroot", self._ctx.chroot_path, "apt-get", "update", "--assume-yes", "--error-on=any"],
+            [self._chroot_bin, self._ctx.chroot_path, "apt-get", "update", "--assume-yes", "--error-on=any"],
             env={"DEBIAN_FRONTEND": "noninteractive"},
         )
 
@@ -445,7 +456,7 @@ class Chroot:
         logger.info("Installing kernel ...")
         run_command(
             [
-                "/usr/sbin/chroot",
+                self._chroot_bin,
                 self._ctx.chroot_path,
                 "apt-get",
                 "remove",
@@ -460,7 +471,7 @@ class Chroot:
         )
         self._apt_update()
         run_command(
-            ["/usr/sbin/chroot", self._ctx.chroot_path, "apt-get", "install", "--assume-yes", self._ctx.conf["kernel"]],
+            [self._chroot_bin, self._ctx.chroot_path, "apt-get", "install", "--assume-yes", self._ctx.conf["kernel"]],
             env={"DEBIAN_FRONTEND": "noninteractive"},
         )
         logger.info("Kernel installed")
@@ -616,7 +627,7 @@ GRUB_FORCE_PARTUUID={partuuid}"""
                         )
                     )
                 logger.info("All PPAs setup")
-                cmd = ["/usr/sbin/chroot", self._ctx.chroot_path, "apt-cache", "policy"]
+                cmd = [self._chroot_bin, self._ctx.chroot_path, "apt-cache", "policy"]
                 out, err = run_command(cmd)
                 logger.info(out)
                 yield
