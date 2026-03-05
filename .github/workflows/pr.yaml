@@ -13,27 +13,37 @@ jobs:
       matrix:
         python: ["3.8", "3.10", "3.12", "3.13", "3.14"]
     steps:
+      - uses: actions/checkout@v6
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
-      - name: Install tox
-        run: |
-          sudo apt install -y tox
-      - uses: actions/checkout@v6
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install tox and tox-uv
+        run: uv tool install tox --with tox-uv
       - name: Run tox
-        # Run tox using the version of Python in `PATH`
         run: tox
   tox-functional:
     runs-on: ubuntu-latest
     steps:
-      - name: Install tox and mmdebstrap
-        run: |
-          sudo apt install -y mmdebstrap tox
       - uses: actions/checkout@v6
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install tox and tox-uv
+        run: uv tool install tox --with tox-uv
+      - name: Install mmdebstrap
+        run: sudo apt install -y mmdebstrap
       - name: Run tox
-        # Run functional tests through tox
-        run: sudo tox -efunctional
+        run: sudo $HOME/.local/bin/tox -efunctional
   snap:
     runs-on: ubuntu-latest
     steps:
