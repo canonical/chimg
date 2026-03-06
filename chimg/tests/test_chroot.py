@@ -29,7 +29,7 @@ def test__cmd_run(mock_subprocess, chroot_dir):
     stdout, stderr = cr._cmd_run("ls")
     assert stdout == "stdout"
     mock_subprocess.assert_called_once_with(
-        ["/usr/sbin/chroot", chroot_dir.as_posix(), ANY], cwd=None, env=None, capture_output=True, shell=False
+        [ANY, chroot_dir.as_posix(), ANY], cwd=None, env=None, capture_output=True, shell=False
     )
 
 
@@ -51,7 +51,7 @@ def test__deb_install(mock_subprocess, chroot_dir, deb):
     cr._deb_install(deb)
     mock_subprocess.assert_any_call(
         [
-            "/usr/sbin/chroot",
+            ANY,
             chroot_dir.as_posix(),
             "apt-get",
             "install",
@@ -66,7 +66,7 @@ def test__deb_install(mock_subprocess, chroot_dir, deb):
     )
     if deb.get("hold", False):
         mock_subprocess.assert_any_call(
-            ["/usr/sbin/chroot", chroot_dir.as_posix(), "apt-mark", "hold", deb["name"]],
+            [ANY, chroot_dir.as_posix(), "apt-mark", "hold", deb["name"]],
             cwd=None,
             env={"DEBIAN_FRONTEND": "noninteractive"},
             capture_output=True,
