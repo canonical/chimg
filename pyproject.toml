@@ -9,7 +9,8 @@ description = "A tool to modify images and chroots based on configuration"
 readme = "README.rst"
 license = {text = "GPL-3.0-or-later"}
 authors = [
-    {name = "Thomas Bechtold", email = "thomasbechtold@jpberlin.de"}
+    {name = "Thomas Bechtold", email = "thomasbechtold@jpberlin.de"},
+    {name = "CPC", email = "cpc@groups.canonical.com"}
 ]
 keywords = ["Ubuntu", "chroot", "image"]
 requires-python = ">=3.10"
