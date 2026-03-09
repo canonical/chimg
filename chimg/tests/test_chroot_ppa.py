@@ -9,7 +9,6 @@ import os
 from chimg import chroot
 from chimg import context
 
-
 curdir = pathlib.Path(__file__).parent.resolve()
 
 
