@@ -12,7 +12,7 @@ authors = [
     {name = "Thomas Bechtold", email = "thomasbechtold@jpberlin.de"}
 ]
 keywords = ["Ubuntu", "chroot", "image"]
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
     "pyyaml>=6.0.3",
     "pydantic>=2.7.4",
