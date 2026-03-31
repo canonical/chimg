@@ -12,7 +12,6 @@ import argparse
 from chimg.context import Context
 from chimg.chroot import Chroot
 
-
 logger = logging.getLogger(__name__)
 
 

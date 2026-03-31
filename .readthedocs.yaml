@@ -11,8 +11,8 @@ build:
     python: "3.13"
   jobs:
     post_install:
-      - pip install poetry
-      - VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH poetry install --with doc
+      - pip install uv
+      - uv pip install -e .[doc]
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:

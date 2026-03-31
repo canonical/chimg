@@ -6,7 +6,6 @@ import pytest
 
 from chimg import context
 
-
 curdir = pathlib.Path(__file__).parent.resolve()
 
 

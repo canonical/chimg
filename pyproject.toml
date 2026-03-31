@@ -1,55 +1,47 @@
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry]
+[project]
 name = "chimg"
 version = "0.3.0"
 description = "A tool to modify images and chroots based on configuration"
-
-license = "GPL-3.0-or-later"
-
+readme = "README.rst"
+license = {text = "GPL-3.0-or-later"}
 authors = [
-    "Thomas Bechtold <thomasbechtold@jpberlin.de>"
+    {name = "Thomas Bechtold", email = "thomasbechtold@jpberlin.de"},
+    {name = "CPC", email = "cpc@groups.canonical.com"}
+]
+keywords = ["Ubuntu", "chroot", "image"]
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml>=6.0.3",
+    "pydantic>=2.7.4",
+    "packaging>=24.2",
 ]
 
-repository = "https://github.com/toabctl/chimg"
-homepage = "https://github.com/toabctl/chimg"
-readme = ["LICENSE"]
-keywords = ["Ubuntu", "chroot", "image"]
+[project.optional-dependencies]
+test = [
+    "flake8",
+    "black",
+    "pytest",
+    "coverage",
+]
+type = [
+    "mypy",
+    "types-pyyaml",
+    "pytest",
+]
+doc = [
+    "Sphinx",
+    "autodoc-pydantic>=2.0.1",
+]
 
+[project.urls]
+Homepage = "https://github.com/canonical/chimg"
+Repository = "https://github.com/canonical/chimg"
 
-[tool.poetry.dependencies]
-python = "^3.8"
-pyyaml = ">=6.0.3"
-pydantic = "^2.7.4"
-packaging = ">=24.2"
-
-[tool.poetry.group.test]
-optional = true
-
-[tool.poetry.group.test.dependencies]
-flake8 = "*"
-black = "*"
-pytest = "*"
-coverage = "*"
-
-[tool.poetry.group.type]
-optional = true
-
-[tool.poetry.group.type.dependencies]
-mypy = "*"
-types-pyyaml = "*"
-pytest = "*"
-
-[tool.poetry.group.doc]
-optional = true
-
-[tool.poetry.group.doc.dependencies]
-Sphinx = "*"
-autodoc-pydantic = "^2.0.1"
-
-[tool.poetry.scripts]
+[project.scripts]
 chimg = "chimg.cli:main"
 
 [tool.pytest.ini_options]

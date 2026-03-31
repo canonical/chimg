@@ -13,7 +13,6 @@ from chimg import context
 import shutil
 from typing import cast
 
-
 curdir = pathlib.Path(__file__).parent.resolve()
 
 

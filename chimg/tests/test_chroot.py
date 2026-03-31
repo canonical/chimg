@@ -10,7 +10,6 @@ import yaml
 from chimg import chroot
 from chimg import context
 
-
 curdir = pathlib.Path(__file__).parent.resolve()
 
 
@@ -217,15 +216,13 @@ def test__snaps_already_installed_no_seed_yaml(chroot_dir):
 def test__snaps_already_installed_with_seed_yaml(chroot_dir):
     """Test _snaps_already_installed() with snap files and seed.yaml"""
     # Mock seed.yaml content
-    mock_seed_yaml = yaml.safe_load(
-        """
+    mock_seed_yaml = yaml.safe_load("""
 snaps:
   - name: core20
     file: core20_1.snap
     channel: latest/edge
     classic: false
-"""
-    )
+""")
 
     # Mock _snap_info method
     mock_snap_info = chroot.SnapInfo(

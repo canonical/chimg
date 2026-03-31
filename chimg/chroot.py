@@ -488,14 +488,10 @@ class Chroot:
             logger.info("Force booting without initramfs with PARTUUID={partuuid}...")
             run_command(["mkdir", "-p", f"{self._ctx.chroot_path}/etc/default/grub.d"])
             with open(f"{self._ctx.chroot_path}/etc/default/grub.d/40-force-partuuid.cfg", "w") as f:
-                f.write(
-                    textwrap.dedent(
-                        f"""
+                f.write(textwrap.dedent(f"""
 # Force boot without an initramfs by setting GRUB_FORCE_PARTUUID
 # Remove this line to enable boot with an initramfs
-GRUB_FORCE_PARTUUID={partuuid}"""
-                    )
-                )
+GRUB_FORCE_PARTUUID={partuuid}"""))
                 run_command(["chroot", self._ctx.chroot_path, "update-grub"])
 
     def _grub_replace_root_with_label(self):
@@ -564,14 +560,10 @@ GRUB_FORCE_PARTUUID={partuuid}"""
         cmd = ["chroot", self._ctx.chroot_path, "dpkg-divert", "--local", "--rename", "/usr/bin/systemd-detect-virt"]
         run_command(cmd)
         with open(f"{self._ctx.chroot_path}/usr/bin/systemd-detect-virt", "w") as f:
-            f.write(
-                textwrap.dedent(
-                    """\
+            f.write(textwrap.dedent("""\
             #!/bin/sh
             exit 1
-            """
-                )
-            )
+            """))
         os.chmod(f"{self._ctx.chroot_path}/usr/bin/systemd-detect-virt", 0o755)
         logger.info("grub divertions added")
         yield
@@ -694,12 +686,10 @@ GRUB_FORCE_PARTUUID={partuuid}"""
         # apt pinning if pin_name and pin_priority provided
         if repo_pin_name and repo_pin_priority:
             with open(f"{self._ctx.chroot_path}/etc/apt/preferences.d/{name}.pref", "w") as f:
-                f.write(
-                    f"""Package: *
+                f.write(f"""Package: *
 Pin: release o={repo_pin_name}
 Pin-Priority: {repo_pin_priority}
-"""
-                )
+""")
         self._apt_update()
         logger.info("PPA added")
         yield
@@ -727,15 +717,11 @@ Pin-Priority: {repo_pin_priority}
         if not os.path.exists(policy_rc_path):
             logger.info("Disabling runlevel operations ...")
             with open(policy_rc_path, "w") as f:
-                f.write(
-                    textwrap.dedent(
-                        """
+                f.write(textwrap.dedent("""
                     #!/bin/sh
                     echo "All runlevel operations denied by policy" >&2
                     exit 101
-                    """
-                    )
-                )
+                    """))
             os.chmod(policy_rc_path, 0o755)
             written = True
         yield
