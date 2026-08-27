@@ -485,14 +485,14 @@ class Chroot:
         m, _ = run_command(["findmnt", "-n", "-o", "SOURCE", "--target", self._ctx.chroot_path])
         partuuid, _ = run_command(["blkid", "-s", "PARTUUID", "-o", "value", m])
         if partuuid:
-            logger.info("Force booting without initramfs with PARTUUID={partuuid}...")
+            logger.info(f"Force booting without initramfs with PARTUUID={partuuid}...")
             run_command(["mkdir", "-p", f"{self._ctx.chroot_path}/etc/default/grub.d"])
             with open(f"{self._ctx.chroot_path}/etc/default/grub.d/40-force-partuuid.cfg", "w") as f:
                 f.write(textwrap.dedent(f"""
 # Force boot without an initramfs by setting GRUB_FORCE_PARTUUID
 # Remove this line to enable boot with an initramfs
 GRUB_FORCE_PARTUUID={partuuid}"""))
-                run_command(["chroot", self._ctx.chroot_path, "update-grub"])
+            run_command(["chroot", self._ctx.chroot_path, "update-grub"])
 
     def _grub_replace_root_with_label(self):
         """
